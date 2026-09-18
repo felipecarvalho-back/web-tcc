@@ -7,24 +7,20 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.guest')]
-#[Title('Login do Usuário - Sentinela FATEC')]
+#[Title('Acesso ao Sistema - Sentinela FATEC')]
 class Login extends Component
 {
-    public string $identifier = 'operador.silva@fatec.sp.gov.br';
+    public string $accessCode = 'GDA-104';
 
-    public string $password = 'fatec@2026';
+    public string $password = '123456';
 
-    public string $workstation = 'principal';
+    public string $profile = 'guarita'; // guarita ou admin
 
     public bool $remember = true;
 
-    public bool $isLoading = false;
-
     public function login(): mixed
     {
-        $this->isLoading = true;
-
-        if ($this->workstation === 'central_admin') {
+        if ($this->profile === 'admin' || str_starts_with(strtoupper($this->accessCode), 'ADM')) {
             return $this->redirectRoute('admin.dashboard', navigate: true);
         }
 

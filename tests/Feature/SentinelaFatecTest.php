@@ -8,13 +8,14 @@ use App\Livewire\Portaria\Monitoramento;
 use App\Livewire\Portaria\Visitantes;
 use Livewire\Livewire;
 
-test('a tela de login carrega e redireciona para a portaria', function () {
+test('a tela de login carrega e redireciona para a portaria por codigo', function () {
     $this->get('/login')
         ->assertOk()
         ->assertSee('Sentinela');
 
     Livewire::test(Login::class)
-        ->set('workstation', 'principal')
+        ->set('accessCode', 'GDA-104')
+        ->set('profile', 'guarita')
         ->call('login')
         ->assertRedirect(route('portaria.monitoramento'));
 });
@@ -46,7 +47,7 @@ test('o botao de permitir entrada de professor sem cadastro libera o acesso por 
 test('a tela de cadastro rapido de visitantes registra novo visitante e valida campos', function () {
     $this->get('/portaria/visitantes')
         ->assertOk()
-        ->assertSee('Cadastro Ágil de Visitantes');
+        ->assertSee('Cadastro Rápido de Visitantes');
 
     Livewire::test(Visitantes::class)
         ->set('cpf', '123.456.789-00')
@@ -75,24 +76,29 @@ test('o dashboard do administrador exibe os 4 indicadores requeridos', function 
         ->assertSee('18.942');
 });
 
-test('a tela de condutores permite alternar abas e cadastrar novo registro via modal', function () {
+test('a tela de condutores permite cadastrar N carros para um professor e buscar por codigo', function () {
     $this->get('/admin/condutores')
         ->assertOk()
-        ->assertSee('Gestão de Condutores e Veículos Autorizados')
-        ->assertSee('Professores (Docentes FATEC)')
+        ->assertSee('Gestão de Condutores e Veículos')
+        ->assertSee('Professores (Docentes)')
         ->assertSee('Funcionários Administrativos')
-        ->assertSee('Prestadores de Serviço (RF02)');
+        ->assertSee('Prestadores de Serviço');
 
     Livewire::test(Condutores::class)
         ->set('activeTab', 'professores')
         ->call('openCreateModal')
         ->assertSet('showFormModal', true)
-        ->set('name', 'Prof. Teste de Unidade')
-        ->set('plate', 'TST-1234')
-        ->set('email', 'teste@fatec.sp.gov.br')
+        ->set('name', 'Prof. Dr. Roberto Valente')
+        ->set('code', 'DOC-99112')
+        ->set('vehicles.0.plate', 'ROB-1111')
+        ->set('vehicles.0.model', 'Cruze')
+        ->call('addVehicle')
+        ->set('vehicles.1.plate', 'ROB-2222')
+        ->set('vehicles.1.model', 'Tracker')
         ->call('save')
         ->assertSet('showFormModal', false)
-        ->assertSee('TST-1234');
+        ->assertSee('ROB-1111')
+        ->assertSee('ROB-2222');
 });
 
 test('a tela de relatorios renderiza filtros e botao para geracao de pdf', function () {

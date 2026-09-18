@@ -68,7 +68,7 @@
             <div>
                 <div class="text-3xl font-extrabold text-on-surface font-mono">{{ number_format($totalVehicles, 0, ',', '.') }}</div>
                 <div class="flex items-center gap-1.5 mt-1 text-xs text-on-surface-variant">
-                    <span>Professores, servidores & prestadores</span>
+                    <span>Professores (N carros), servidores & prestadores</span>
                 </div>
             </div>
         </div>
@@ -114,7 +114,7 @@
             <div>
                 <div class="text-3xl font-extrabold text-on-surface font-mono">{{ number_format($totalPassageRecords, 0, ',', '.') }}</div>
                 <div class="flex items-center gap-1.5 mt-1 text-xs text-on-surface-variant">
-                    <span>Passagens OCR computadas</span>
+                    <span>Passagens registradas pelo sistema</span>
                 </div>
             </div>
         </div>
@@ -258,7 +258,7 @@
         <div class="p-5 bg-surface-container-low border-b border-surface-container flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-[22px]">security</span>
-                <h3 class="text-base font-bold text-on-surface">Auditoria de Liberações Recentes (RF11)</h3>
+                <h3 class="text-base font-bold text-on-surface">Auditoria de Liberações Recentes</h3>
             </div>
             <a href="{{ route('admin.relatorios') }}" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
                 <span>Ver Log Completo</span>

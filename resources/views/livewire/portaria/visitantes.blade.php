@@ -22,24 +22,24 @@
         <div class="flex flex-col gap-1">
             <div class="flex items-center gap-2">
                 <span class="px-2 py-0.5 rounded bg-primary-container text-white text-[11px] font-bold uppercase tracking-wider">
-                    RF03
+                    Posto da Guarita
                 </span>
                 <span class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider">
-                    Terminal Rápido de Guarita
+                    Liberação Pontual
                 </span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-                Cadastro Ágil de Visitantes
+                Cadastro Rápido de Visitantes
             </h1>
             <p class="text-sm text-on-surface-variant">
-                Registro instantâneo de visitantes e veículos não credenciados para autorização e liberação pontual da cancela.
+                Registro instantâneo de visitantes e veículos não credenciados para autorização e liberação imediata da cancela.
             </p>
         </div>
 
         <div class="flex items-center gap-3">
             <a 
                 href="{{ route('portaria.monitoramento') }}"
-                class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
             >
                 <span class="material-symbols-outlined text-[18px]">arrow_back</span>
                 <span>Voltar ao Monitoramento</span>

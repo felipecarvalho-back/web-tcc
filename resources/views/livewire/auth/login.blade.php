@@ -39,42 +39,54 @@
                     </div>
                 </div>
 
-                <!-- Operational Notice -->
-                <div class="bg-surface-container-low border border-surface-container/80 rounded-xl p-3.5 mb-6 flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">verified_user</span>
-                    <p class="text-xs text-on-surface leading-relaxed">
-                        Autenticação restrita e monitorada para operadores de guarita e gestão predial conforme a política de segurança FATEC/CPS.
-                    </p>
-                </div>
-
                 <!-- Form -->
                 <form wire:submit="login" class="flex flex-col gap-4">
-                    <!-- Usuário / Matrícula -->
+                    <!-- Seletor de Perfil / Área de Entrada -->
                     <div class="flex flex-col gap-1.5">
-                        <label for="identifier" class="text-xs font-bold text-on-surface flex items-center justify-between">
-                            <span>Usuário / Matrícula ou E-mail</span>
-                            <span class="text-on-surface-variant font-normal">@fatec.sp.gov.br</span>
+                        <label class="text-xs font-bold text-on-surface">Área de Acesso</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button 
+                                type="button" 
+                                wire:click="$set('profile', 'guarita'); $set('accessCode', 'GDA-104')"
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer {{ $profile === 'guarita' ? 'bg-primary text-white border-primary shadow-xs' : 'bg-surface-container-low border-surface-container text-on-surface-variant hover:bg-surface-container' }}"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">security</span>
+                                <span>Guarita</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="$set('profile', 'admin'); $set('accessCode', 'ADM-001')"
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer {{ $profile === 'admin' ? 'bg-primary text-white border-primary shadow-xs' : 'bg-surface-container-low border-surface-container text-on-surface-variant hover:bg-surface-container' }}"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                                <span>Administrativo</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Código de Acesso (Sem e-mail) -->
+                    <div class="flex flex-col gap-1.5">
+                        <label for="accessCode" class="text-xs font-bold text-on-surface flex items-center justify-between">
+                            <span>Código de Acesso do Operador</span>
+                            <span class="text-on-surface-variant font-mono text-[11px]">Ex: GDA-104 ou ADM-001</span>
                         </label>
                         <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">badge</span>
+                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">pin</span>
                             <input 
-                                wire:model="identifier" 
-                                id="identifier" 
+                                wire:model="accessCode" 
+                                id="accessCode" 
                                 type="text" 
                                 required 
-                                placeholder="Ex: operador.silva@fatec.sp.gov.br"
-                                class="w-full h-11 pl-10 pr-4 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
+                                placeholder="Insira o seu código"
+                                class="w-full h-11 pl-10 pr-4 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
                             />
                         </div>
                     </div>
 
-                    <!-- Senha -->
+                    <!-- Senha / PIN -->
                     <div class="flex flex-col gap-1.5" x-data="{ showPassword: false }">
                         <div class="flex items-center justify-between">
-                            <label for="password" class="text-xs font-bold text-on-surface">Senha de Acesso</label>
-                            <a href="#" class="text-xs text-primary hover:underline font-semibold">
-                                Esqueci minha senha
-                            </a>
+                            <label for="password" class="text-xs font-bold text-on-surface">Senha / PIN</label>
                         </div>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">lock</span>
@@ -83,36 +95,16 @@
                                 id="password" 
                                 :type="showPassword ? 'text' : 'password'" 
                                 required 
-                                placeholder="Insira sua senha de acesso"
+                                placeholder="Insira sua senha ou PIN"
                                 class="w-full h-11 pl-10 pr-11 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
                             />
                             <button 
                                 type="button" 
                                 @click="showPassword = !showPassword"
-                                class="absolute right-2 p-1.5 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors"
+                                class="absolute right-2 p-1.5 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors cursor-pointer"
                             >
                                 <span class="material-symbols-outlined text-[20px]" x-text="showPassword ? 'visibility_off' : 'visibility'">visibility</span>
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- Posto Operacional -->
-                    <div class="flex flex-col gap-1.5">
-                        <label for="workstation" class="text-xs font-bold text-on-surface">
-                            Posto Operacional de Alocação
-                        </label>
-                        <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">storefront</span>
-                            <select 
-                                wire:model="workstation" 
-                                id="workstation" 
-                                class="w-full h-11 pl-10 pr-10 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors appearance-none cursor-pointer"
-                            >
-                                <option value="principal">Guarita Principal (Entrada/Saída de Veículos)</option>
-                                <option value="bloco_adm">Guarita Bloco Administrativo • Vagas Docentes</option>
-                                <option value="central_admin">Central de Monitoramento • Painel Geral (Admin)</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-3 pointer-events-none text-on-surface-variant text-[20px]">expand_more</span>
                         </div>
                     </div>
 
@@ -124,39 +116,39 @@
                                 type="checkbox" 
                                 class="w-4 h-4 rounded text-primary focus:ring-primary border-surface-container-highest cursor-pointer"
                             />
-                            <span class="text-xs text-on-surface-variant font-medium">Manter sessão ativa neste terminal</span>
+                            <span class="text-xs text-on-surface-variant font-medium">Manter credenciais neste terminal</span>
                         </label>
                     </div>
 
-                    <!-- Botão de Login -->
+                    <!-- Botão de Acesso -->
                     <button 
                         type="submit" 
                         class="w-full h-12 mt-2 bg-primary hover:bg-primary-container text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-[20px]">login</span>
-                        <span>Acessar Terminal de Controle</span>
+                        <span>Acessar Terminal</span>
                     </button>
                 </form>
 
-                <!-- Atalhos Rápidos para Demonstração de Frontend -->
+                <!-- Atalhos Diretos -->
                 <div class="mt-8 pt-6 border-t border-surface-container flex flex-col gap-2.5">
                     <span class="text-[11px] font-bold text-on-surface-variant uppercase text-center tracking-wider">
-                        Acesso Rápido de Demonstração
+                        Acesso Direto
                     </span>
                     <div class="grid grid-cols-2 gap-2">
                         <a 
                             href="{{ route('portaria.monitoramento') }}" 
-                            class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
+                            class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-[16px] text-primary">security</span>
-                            <span>Módulo Guarda</span>
+                            <span>Entrar na Guarita</span>
                         </a>
                         <a 
                             href="{{ route('admin.dashboard') }}" 
-                            class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
+                            class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-[16px] text-primary">admin_panel_settings</span>
-                            <span>Módulo Admin</span>
+                            <span>Entrar no Admin</span>
                         </a>
                     </div>
                 </div>
@@ -165,7 +157,7 @@
 
         <!-- Footer -->
         <p class="mt-6 text-center text-xs text-on-surface-variant">
-            Sentinela FATEC • Versão 2.4.0-Livewire • Centro Paula Souza
+            Sentinela FATEC • Autenticação por Código • Centro Paula Souza
         </p>
     </div>
 </div>

@@ -17,22 +17,22 @@
         </div>
     @endif
 
-    <!-- CONTEXT & TELEMETRIA OPERACIONAL (RF07 / RF08 / RF09) -->
+    <!-- CONTEXT & TELEMETRIA OPERACIONAL DA GUARITA -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs">
         <div class="flex flex-col gap-1.5">
             <div class="flex items-center gap-2">
                 <span class="px-2 py-0.5 rounded bg-primary-container text-white text-[11px] font-bold uppercase tracking-wider">
-                    RF07 • RF08 • RF09
+                    Terminal da Guarita
                 </span>
                 <span class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider">
-                    Terminal Operacional de Guarita
+                    Posto de Acesso Principal
                 </span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-                Controle de Passagem de Veículos - Portaria Principal
+                Controle de Passagem de Veículos
             </h1>
             <p class="text-sm text-on-surface-variant">
-                Monitoramento de telemetria OCR mobile em tempo real com liberação de cancela e contingência manual.
+                Monitoramento de leituras de placa em tempo real com liberação de cancela e contingência manual.
             </p>
         </div>
 
@@ -45,7 +45,7 @@
                 </span>
                 <div class="flex flex-col">
                     <span class="text-xs font-bold text-on-surface leading-tight">Reverb WebSocket</span>
-                    <span class="text-[10px] text-on-surface-variant font-mono">wss://reverb.fatec.sp • 14ms</span>
+                    <span class="text-[10px] text-on-surface-variant font-mono">Conexão Ativa • 14ms</span>
                 </div>
             </div>
 
@@ -57,7 +57,7 @@
                 title="Simular passagem capturada pelo app móvel"
             >
                 <span class="material-symbols-outlined text-[16px]">sensors</span>
-                <span>Simular Captura OCR</span>
+                <span>Simular Captura de Placa</span>
             </button>
         </div>
     </div>
@@ -86,7 +86,7 @@
 
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs flex items-center justify-between">
             <div>
-                <span class="text-xs font-bold text-on-surface-variant uppercase">Correções Manuais</span>
+                <span class="text-xs font-bold text-on-surface-variant uppercase">Correções de Placa</span>
                 <div class="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono">{{ $manualCorrections }}</div>
             </div>
             <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
@@ -96,7 +96,7 @@
 
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs flex items-center justify-between">
             <div>
-                <span class="text-xs font-bold text-on-surface-variant uppercase">Vagas Estacionamento</span>
+                <span class="text-xs font-bold text-on-surface-variant uppercase">Vagas no Pátio</span>
                 <div class="text-2xl sm:text-3xl font-extrabold text-primary font-mono">
                     {{ $occupiedSpots }}<span class="text-sm text-on-surface-variant font-normal">/{{ $totalSpots }}</span>
                 </div>
@@ -107,7 +107,7 @@
         </div>
     </div>
 
-    <!-- FILTROS DE TRÁFEGO (RF10) -->
+    <!-- FILTROS DE TRÁFEGO -->
     <div class="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 flex-1">
             <!-- Filtro de Data -->
@@ -181,16 +181,16 @@
         </div>
     </div>
 
-    <!-- LISTA DE ENTRADA DE VEÍCULOS (AO VIVO) -->
+    <!-- LISTA DE ENTRADA DE VEÍCULOS -->
     <div class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
         <!-- Barra de Cabeçalho da Tabela -->
         <div class="p-4 bg-surface-container-low border-b border-surface-container flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2.5">
                 <span class="material-symbols-outlined text-primary text-[22px]">nest_cam_floodlight</span>
-                <h2 class="text-base font-bold text-on-surface">Transmissão Ativa da Cancela 01 (Entrada Principal)</h2>
+                <h2 class="text-base font-bold text-on-surface">Fila da Cancela 01 (Entrada Principal)</h2>
                 <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Ao Vivo</span>
             </div>
-            <span class="text-xs text-on-surface-variant">Atualizado em tempo real via WebSocket (Reverb)</span>
+            <span class="text-xs text-on-surface-variant">Sincronização em tempo real via WebSocket</span>
         </div>
 
         <!-- Tabela Responsiva -->
@@ -198,12 +198,12 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-surface-container/60 text-on-surface-variant uppercase text-[11px] font-bold tracking-wider h-11 border-b border-surface-container">
-                        <th class="py-2.5 px-4">Captura Mobile</th>
+                        <th class="py-2.5 px-4">Captura da Câmera</th>
                         <th class="py-2.5 px-4">Placa Identificada</th>
-                        <th class="py-2.5 px-4">Condutor & Categoria</th>
+                        <th class="py-2.5 px-4">Condutor & Vínculo</th>
                         <th class="py-2.5 px-4">Horário</th>
                         <th class="py-2.5 px-4">Status</th>
-                        <th class="py-2.5 px-4 text-right">Ações Operacionais</th>
+                        <th class="py-2.5 px-4 text-right">Ações Operacionais da Cancela</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-container">
@@ -288,7 +288,7 @@
                                 @endif
                             </td>
 
-                            <!-- OS TRÊS BOTÕES REQUISITADOS PELO USUÁRIO -->
+                            <!-- OS TRÊS BOTÕES REQUISITADOS -->
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                     <!-- Botão 1: Corrigir Placa (Abre o Modal) -->
@@ -302,12 +302,12 @@
                                         <span>Corrigir Placa</span>
                                     </button>
 
-                                    <!-- Botão 3: Se não for cadastrado, mas o professor tem acesso, permitir a entrada -->
+                                    <!-- Botão 3: Permitir Entrada se o professor tem acesso -->
                                     <button 
                                         type="button" 
                                         wire:click="allowManualEntry({{ $record['id'] }})"
                                         class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
-                                        title="Permitir entrada de docente por exceção"
+                                        title="Permitir entrada de docente com acesso concedido"
                                     >
                                         <span class="material-symbols-outlined text-[15px]">badge</span>
                                         <span>Permitir Entrada (Prof)</span>
@@ -318,7 +318,7 @@
                                         type="button" 
                                         wire:click="markExit({{ $record['id'] }})"
                                         class="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                                        title="Registrar saída do veículo da instituição"
+                                        title="Registrar saída do veículo"
                                     >
                                         <span class="material-symbols-outlined text-[15px]">output</span>
                                         <span>Marcar Saída</span>
@@ -352,7 +352,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE CORREÇÃO DE PLACA (RF08) -->
+    <!-- MODAL DE CORREÇÃO DE PLACA -->
     @if ($showCorrectionModal && $selectedRecord)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
             <div class="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
@@ -364,9 +364,9 @@
                         </div>
                         <div class="flex flex-col">
                             <h3 class="text-base font-bold text-white leading-tight">
-                                Correção de Leitura de Placa - Registro #{{ $selectedRecord['id'] }}
+                                Correção Manual de Placa - Registro #{{ $selectedRecord['id'] }}
                             </h3>
-                            <span class="text-[11px] text-white/80">Intervenção Operacional Manual (RF08 / RF11)</span>
+                            <span class="text-[11px] text-white/80">Intervenção Operacional da Guarita</span>
                         </div>
                     </div>
                     <button 
@@ -383,7 +383,7 @@
                     <!-- Foto Capturada com Região OCR -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded-xl border border-surface-container">
                         <div class="flex flex-col gap-1.5">
-                            <span class="text-[11px] font-bold text-on-surface-variant uppercase">Captura da Câmera (App Mobile)</span>
+                            <span class="text-[11px] font-bold text-on-surface-variant uppercase">Captura da Câmera</span>
                             <div class="relative h-32 rounded-lg overflow-hidden bg-black flex items-center justify-center">
                                 <img src="{{ $selectedRecord['image_url'] }}" alt="Captura" class="w-full h-full object-cover">
                                 <div class="absolute inset-x-6 inset-y-6 rounded border-2 border-dashed border-amber-400 pointer-events-none flex items-end justify-start p-1">
@@ -401,11 +401,11 @@
                                         <span class="font-bold text-on-surface font-mono">{{ $selectedRecord['registered_at'] }}</span>
                                     </div>
                                     <div class="flex justify-between py-1 border-b border-surface-container">
-                                        <span class="text-on-surface-variant">Leitura OCR Bruta:</span>
+                                        <span class="text-on-surface-variant">Leitura Bruta:</span>
                                         <span class="font-bold text-on-surface font-mono">{{ $selectedRecord['raw_ocr'] }}</span>
                                     </div>
                                     <div class="flex justify-between py-1">
-                                        <span class="text-on-surface-variant">Confiança OCR:</span>
+                                        <span class="text-on-surface-variant">Confiança:</span>
                                         <span class="font-bold text-amber-600">{{ $selectedRecord['confidence'] }}%</span>
                                     </div>
                                 </div>
@@ -417,7 +417,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="flex flex-col gap-1.5">
                             <label class="text-xs font-bold text-on-surface">
-                                Placa Corrigida (Padrão Mercosul / Antigo)
+                                Placa Corrigida (Mercosul / Padrão)
                             </label>
                             <input 
                                 wire:model="correctedPlate" 
@@ -446,7 +446,7 @@
                     <!-- Justificativa -->
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-on-surface">
-                            Justificativa da Correção (Auditoria RF11)
+                            Justificativa da Correção
                         </label>
                         <select 
                             wire:model="correctionJustification"

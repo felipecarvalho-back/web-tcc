@@ -4,10 +4,10 @@
         <div class="flex flex-col gap-1">
             <div class="flex items-center gap-2">
                 <span class="px-2 py-0.5 rounded bg-primary-container text-white text-[11px] font-bold uppercase tracking-wider">
-                    RF10 • RF11
+                    Auditoria & Tráfego
                 </span>
                 <span class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider">
-                    Exportação & Auditoria
+                    Exportação em PDF
                 </span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- SUMÁRIO EXECUTIVO DO RELATÓRIO (IMPRESSO E NA TELA) -->
+    <!-- SUMÁRIO EXECUTIVO DO RELATÓRIO -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
             <span class="text-[11px] font-bold text-on-surface-variant uppercase">Registros Filtrados</span>
@@ -244,7 +244,7 @@
             <div class="flex flex-col items-center">
                 <div class="w-64 border-b border-black mb-2"></div>
                 <span>Guarda Responsável pelo Turno</span>
-                <span class="text-gray-600 font-mono">Matrícula: SEC-10491</span>
+                <span class="text-gray-600 font-mono">Código: GDA-104</span>
             </div>
             <div class="flex flex-col items-center">
                 <div class="w-64 border-b border-black mb-2"></div>

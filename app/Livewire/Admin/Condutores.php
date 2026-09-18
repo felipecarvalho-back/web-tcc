@@ -7,7 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Admin - Gestão e CRUD de Condutores e Veículos')]
+#[Title('Admin - Gestão de Condutores e Veículos')]
 class Condutores extends Component
 {
     public string $activeTab = 'professores'; // professores, funcionarios, prestadores
@@ -25,21 +25,16 @@ class Condutores extends Component
 
     public string $category = 'professor';
 
-    public string $registrationNumber = '';
-
-    public string $email = '';
+    public string $code = ''; // Código funcional / Matrícula
 
     public string $department = '';
-
-    public string $plate = '';
-
-    public string $vehicleModel = '';
-
-    public string $vehicleColor = 'Prata';
 
     public string $accessValidity = 'Indeterminado';
 
     public string $status = 'ativo';
+
+    // Professor pode ter N carros
+    public array $vehicles = [];
 
     public string $toastMessage = '';
 
@@ -50,17 +45,17 @@ class Condutores extends Component
     public function mount(): void
     {
         $this->people = [
-            // Professores
+            // Professores (com N veículos vinculados)
             [
                 'id' => 1,
                 'name' => 'Prof. Dr. Marcos Souza',
                 'category' => 'professor',
-                'registration' => 'DOC-94281',
-                'email' => 'marcos.souza@fatec.sp.gov.br',
+                'code' => 'DOC-94281',
                 'department' => 'DSM - Desenvolvimento de Software Multiplataforma',
-                'plate' => 'BRA-2E19',
-                'vehicle_model' => 'Toyota Corolla',
-                'vehicle_color' => 'Cinza',
+                'vehicles' => [
+                    ['plate' => 'BRA-2E19', 'model' => 'Toyota Corolla', 'color' => 'Cinza'],
+                    ['plate' => 'FTC-1090', 'model' => 'Honda Civic', 'color' => 'Preto'],
+                ],
                 'validity' => 'Indeterminado',
                 'status' => 'ativo',
             ],
@@ -68,12 +63,11 @@ class Condutores extends Component
                 'id' => 2,
                 'name' => 'Profa. Dra. Juliana Rezende',
                 'category' => 'professor',
-                'registration' => 'DOC-88312',
-                'email' => 'juliana.rezende@fatec.sp.gov.br',
+                'code' => 'DOC-88312',
                 'department' => 'GTI - Gestão da Tecnologia da Informação',
-                'plate' => 'GTR-4C88',
-                'vehicle_model' => 'Honda HR-V',
-                'vehicle_color' => 'Prata',
+                'vehicles' => [
+                    ['plate' => 'GTR-4C88', 'model' => 'Honda HR-V', 'color' => 'Prata'],
+                ],
                 'validity' => 'Indeterminado',
                 'status' => 'ativo',
             ],
@@ -81,12 +75,13 @@ class Condutores extends Component
                 'id' => 3,
                 'name' => 'Prof. Me. André Cavalcante',
                 'category' => 'professor',
-                'registration' => 'DOC-74192',
-                'email' => 'andre.cavalcante@fatec.sp.gov.br',
-                'department' => 'Banco de Dados & Inteligência Artificial',
-                'plate' => 'KPL-3390',
-                'vehicle_model' => 'VW T-Cross',
-                'vehicle_color' => 'Branco',
+                'code' => 'DOC-74192',
+                'department' => 'Banco de Dados & IA',
+                'vehicles' => [
+                    ['plate' => 'KPL-3390', 'model' => 'VW T-Cross', 'color' => 'Branco'],
+                    ['plate' => 'AND-7700', 'model' => 'Yamaha MT-07', 'color' => 'Azul'],
+                    ['plate' => 'SPX-9122', 'model' => 'Fiat Pulse', 'color' => 'Cinza'],
+                ],
                 'validity' => 'Indeterminado',
                 'status' => 'ativo',
             ],
@@ -96,12 +91,11 @@ class Condutores extends Component
                 'id' => 4,
                 'name' => 'Fernanda Guimarães',
                 'category' => 'funcionario',
-                'registration' => 'ADM-10293',
-                'email' => 'fernanda.guimaraes@fatec.sp.gov.br',
+                'code' => 'ADM-10293',
                 'department' => 'Secretaria Acadêmica Central',
-                'plate' => 'ADM-9021',
-                'vehicle_model' => 'Hyundai HB20',
-                'vehicle_color' => 'Preto',
+                'vehicles' => [
+                    ['plate' => 'ADM-9021', 'model' => 'Hyundai HB20', 'color' => 'Preto'],
+                ],
                 'validity' => 'Indeterminado',
                 'status' => 'ativo',
             ],
@@ -109,44 +103,59 @@ class Condutores extends Component
                 'id' => 5,
                 'name' => 'Marcelo Andrade',
                 'category' => 'funcionario',
-                'registration' => 'ADM-23910',
-                'email' => 'marcelo.andrade@fatec.sp.gov.br',
+                'code' => 'ADM-23910',
                 'department' => 'Diretoria de Serviços e Finanças',
-                'plate' => 'MCA-5544',
-                'vehicle_model' => 'Chevrolet Tracker',
-                'vehicle_color' => 'Azul',
+                'vehicles' => [
+                    ['plate' => 'MCA-5544', 'model' => 'Chevrolet Tracker', 'color' => 'Azul'],
+                ],
                 'validity' => 'Indeterminado',
                 'status' => 'ativo',
             ],
 
-            // Prestadores de Serviço (RF02)
+            // Prestadores de Serviço
             [
                 'id' => 6,
                 'name' => 'Carlos Silva',
                 'category' => 'prestador',
-                'registration' => 'CNPJ: 14.821.902/0001-44',
-                'email' => 'contato@climafatec.com.br',
+                'code' => 'PST-5512',
                 'department' => 'Manutenção Predial / Ar-Condicionado',
-                'plate' => 'ABC-1234',
-                'vehicle_model' => 'Fiat Fiorino',
-                'vehicle_color' => 'Branca',
+                'vehicles' => [
+                    ['plate' => 'ABC-1234', 'model' => 'Fiat Fiorino', 'color' => 'Branca'],
+                    ['plate' => 'FIO-8822', 'model' => 'Fiat Strada', 'color' => 'Branca'],
+                ],
                 'validity' => '31/12/2026',
                 'status' => 'ativo',
             ],
             [
                 'id' => 7,
-                'name' => 'Elétrica Volt Prestação de Serviços',
+                'name' => 'Elétrica Volt Manutenção',
                 'category' => 'prestador',
-                'registration' => 'CNPJ: 08.192.441/0001-90',
-                'email' => 'operacoes@eletricavolt.com.br',
+                'code' => 'PST-9901',
                 'department' => 'Infraestrutura Elétrica',
-                'plate' => 'VLT-7711',
-                'vehicle_model' => 'Renault Master',
-                'vehicle_color' => 'Cinza',
+                'vehicles' => [
+                    ['plate' => 'VLT-7711', 'model' => 'Renault Master', 'color' => 'Cinza'],
+                ],
                 'validity' => '15/11/2026',
                 'status' => 'inativo',
             ],
         ];
+
+        $this->vehicles = [
+            ['plate' => '', 'model' => '', 'color' => 'Prata'],
+        ];
+    }
+
+    public function addVehicle(): void
+    {
+        $this->vehicles[] = ['plate' => '', 'model' => '', 'color' => 'Prata'];
+    }
+
+    public function removeVehicle(int $index): void
+    {
+        if (count($this->vehicles) > 1) {
+            unset($this->vehicles[$index]);
+            $this->vehicles = array_values($this->vehicles);
+        }
     }
 
     public function openCreateModal(): void
@@ -157,6 +166,14 @@ class Condutores extends Component
             'prestadores' => 'prestador',
             default => 'professor',
         };
+        $this->code = match ($this->category) {
+            'professor' => 'DOC-'.rand(10000, 99999),
+            'funcionario' => 'ADM-'.rand(10000, 99999),
+            'prestador' => 'PST-'.rand(1000, 9999),
+        };
+        $this->vehicles = [
+            ['plate' => '', 'model' => '', 'color' => 'Prata'],
+        ];
         $this->showFormModal = true;
     }
 
@@ -167,12 +184,9 @@ class Condutores extends Component
                 $this->editingId = $id;
                 $this->name = $person['name'];
                 $this->category = $person['category'];
-                $this->registrationNumber = $person['registration'];
-                $this->email = $person['email'];
+                $this->code = $person['code'];
                 $this->department = $person['department'];
-                $this->plate = $person['plate'];
-                $this->vehicleModel = $person['vehicle_model'];
-                $this->vehicleColor = $person['vehicle_color'];
+                $this->vehicles = $person['vehicles'];
                 $this->accessValidity = $person['validity'];
                 $this->status = $person['status'];
                 $this->showFormModal = true;
@@ -192,48 +206,58 @@ class Condutores extends Component
     {
         $this->validate([
             'name' => 'required|min:3',
-            'plate' => 'required|min:7',
-            'email' => 'required|email',
+            'code' => 'required|min:3',
+            'vehicles.0.plate' => 'required|min:7',
         ], [
             'name.required' => 'O nome é obrigatório.',
-            'plate.required' => 'A placa do veículo é obrigatória.',
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'Informe um e-mail válido.',
+            'code.required' => 'O código de acesso/matrícula é obrigatório.',
+            'vehicles.0.plate.required' => 'Cadastre ao menos a placa do primeiro veículo.',
         ]);
+
+        // Formatar placas em maiúsculo
+        $formattedVehicles = array_map(function ($veh) {
+            return [
+                'plate' => strtoupper(trim($veh['plate'])),
+                'model' => $veh['model'] ?: 'Não informado',
+                'color' => $veh['color'] ?: 'Padrão',
+            ];
+        }, array_filter($this->vehicles, fn ($v) => ! empty(trim($v['plate']))));
+
+        if (empty($formattedVehicles)) {
+            $formattedVehicles[] = [
+                'plate' => 'SEM-PLACA',
+                'model' => 'Não informado',
+                'color' => 'Padrão',
+            ];
+        }
 
         if ($this->editingId) {
             foreach ($this->people as &$person) {
                 if ($person['id'] === $this->editingId) {
                     $person['name'] = $this->name;
                     $person['category'] = $this->category;
-                    $person['registration'] = $this->registrationNumber;
-                    $person['email'] = $this->email;
+                    $person['code'] = $this->code;
                     $person['department'] = $this->department;
-                    $person['plate'] = strtoupper(trim($this->plate));
-                    $person['vehicle_model'] = $this->vehicleModel;
-                    $person['vehicle_color'] = $this->vehicleColor;
+                    $person['vehicles'] = $formattedVehicles;
                     $person['validity'] = $this->accessValidity;
                     $person['status'] = $this->status;
                     break;
                 }
             }
-            $this->triggerToast('Cadastro atualizado com sucesso!', 'success');
+            $this->triggerToast('Cadastro e veículos atualizados com sucesso!', 'success');
         } else {
             $newId = count($this->people) + 1;
             $this->people[] = [
                 'id' => $newId,
                 'name' => $this->name,
                 'category' => $this->category,
-                'registration' => $this->registrationNumber ?: 'MAT-'.rand(10000, 99999),
-                'email' => $this->email,
+                'code' => strtoupper(trim($this->code)),
                 'department' => $this->department ?: 'Geral',
-                'plate' => strtoupper(trim($this->plate)),
-                'vehicle_model' => $this->vehicleModel ?: 'Não especificado',
-                'vehicle_color' => $this->vehicleColor ?: 'Prata',
+                'vehicles' => $formattedVehicles,
                 'validity' => $this->accessValidity ?: 'Indeterminado',
                 'status' => $this->status,
             ];
-            $this->triggerToast('Novo condutor e veículo cadastrados com sucesso!', 'success');
+            $this->triggerToast('Novo condutor cadastrado com '.count($formattedVehicles).' veículo(s)!', 'success');
         }
 
         $this->closeFormModal();
@@ -260,12 +284,11 @@ class Condutores extends Component
     {
         $this->editingId = null;
         $this->name = '';
-        $this->registrationNumber = '';
-        $this->email = '';
+        $this->code = '';
         $this->department = '';
-        $this->plate = '';
-        $this->vehicleModel = '';
-        $this->vehicleColor = 'Prata';
+        $this->vehicles = [
+            ['plate' => '', 'model' => '', 'color' => 'Prata'],
+        ];
         $this->accessValidity = 'Indeterminado';
         $this->status = 'ativo';
     }
@@ -305,9 +328,18 @@ class Condutores extends Component
             if ($this->search) {
                 $term = trim($this->search);
                 $found = (stripos($item['name'], $term) !== false) ||
-                         (stripos($item['plate'], $term) !== false) ||
                          (stripos($item['department'], $term) !== false) ||
-                         (stripos($item['registration'], $term) !== false);
+                         (stripos($item['code'], $term) !== false);
+
+                if (! $found) {
+                    // Check within all vehicles plates
+                    foreach ($item['vehicles'] as $v) {
+                        if (stripos($v['plate'], $term) !== false) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
 
                 if (! $found) {
                     return false;
