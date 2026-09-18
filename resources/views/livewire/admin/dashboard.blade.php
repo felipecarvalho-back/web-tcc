@@ -120,136 +120,68 @@
         </div>
     </div>
 
-    <!-- SEGUNDA LINHA: OCUPAÇÃO DO ESTACIONAMENTO & GRÁFICO DE PICOS -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- ESTADO DO ESTACIONAMENTO (4 COLUNAS) -->
-        <div class="lg:col-span-4 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between gap-4">
-            <div class="flex items-center justify-between pb-3 border-b border-surface-container">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[22px]">local_parking</span>
-                    <h2 class="text-base font-bold text-on-surface">Capacidade do Pátio</h2>
-                </div>
-                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
-                    38 Vagas Livres
+    <!-- GRÁFICO DE FLUXO HORÁRIO DE TRÁFEGO (FULL WIDTH) -->
+    <div class="bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-container flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[22px]">show_chart</span>
+                <h2 class="text-base font-bold text-on-surface">Curva de Tráfego Horário (07h às 22h)</h2>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-semibold">
+                <span class="flex items-center gap-1.5 text-emerald-700">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                    Entradas
                 </span>
-            </div>
-
-            <div class="flex flex-col items-center py-4">
-                <div class="relative w-40 h-40 flex items-center justify-center">
-                    <!-- SVG Circular Progress Ring -->
-                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                        <path
-                            class="text-surface-container"
-                            stroke-width="3.5"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <path
-                            class="text-primary-container transition-all duration-1000 ease-out"
-                            stroke-dasharray="81, 100"
-                            stroke-width="3.5"
-                            stroke-linecap="round"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                    </svg>
-                    <div class="absolute flex flex-col items-center justify-center">
-                        <span class="text-3xl font-extrabold text-on-surface font-mono">81%</span>
-                        <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Ocupado</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-2 text-xs border-t border-surface-container pt-3">
-                <div class="flex justify-between items-center">
-                    <span class="text-on-surface-variant flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                        Vagas Docentes:
-                    </span>
-                    <span class="font-bold text-on-surface font-mono">88 / 100</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-on-surface-variant flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-secondary-container"></span>
-                        Vagas Servidores / Adm:
-                    </span>
-                    <span class="font-bold text-on-surface font-mono">54 / 60</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-on-surface-variant flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                        Vagas Visitantes / Rotativas:
-                    </span>
-                    <span class="font-bold text-on-surface font-mono">20 / 40</span>
-                </div>
+                <span class="flex items-center gap-1.5 text-amber-700">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+                    Saídas
+                </span>
             </div>
         </div>
 
-        <!-- GRÁFICO DE FLUXO HORÁRIO DE TRÁFEGO (8 COLUNAS) -->
-        <div class="lg:col-span-8 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between gap-4">
-            <div class="flex items-center justify-between pb-3 border-b border-surface-container">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[22px]">show_chart</span>
-                    <h2 class="text-base font-bold text-on-surface">Curva de Tráfego Horário (07h às 22h)</h2>
-                </div>
-                <div class="flex items-center gap-4 text-xs font-semibold">
-                    <span class="flex items-center gap-1.5 text-emerald-700">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                        Entradas
-                    </span>
-                    <span class="flex items-center gap-1.5 text-amber-700">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
-                        Saídas
-                    </span>
-                </div>
-            </div>
+        <!-- Gráfico em barras CSS Responsivas -->
+        <div class="h-60 flex items-end justify-between gap-2 pt-6 px-2">
+            @php
+                $hours = [
+                    ['time' => '07h', 'in' => 65, 'out' => 8],
+                    ['time' => '08h', 'in' => 98, 'out' => 14],
+                    ['time' => '09h', 'in' => 45, 'out' => 20],
+                    ['time' => '11h', 'in' => 30, 'out' => 40],
+                    ['time' => '12h', 'in' => 52, 'out' => 88],
+                    ['time' => '13h', 'in' => 78, 'out' => 35],
+                    ['time' => '15h', 'in' => 25, 'out' => 30],
+                    ['time' => '17h', 'in' => 35, 'out' => 95],
+                    ['time' => '18h', 'in' => 85, 'out' => 45],
+                    ['time' => '19h', 'in' => 90, 'out' => 25],
+                    ['time' => '21h', 'in' => 12, 'out' => 85],
+                    ['time' => '22h', 'in' => 5,  'out' => 98],
+                ];
+            @endphp
 
-            <!-- Gráfico em barras CSS Responsivas -->
-            <div class="h-56 flex items-end justify-between gap-2 pt-6 px-2">
-                @php
-                    $hours = [
-                        ['time' => '07h', 'in' => 65, 'out' => 8],
-                        ['time' => '08h', 'in' => 98, 'out' => 14],
-                        ['time' => '09h', 'in' => 45, 'out' => 20],
-                        ['time' => '11h', 'in' => 30, 'out' => 40],
-                        ['time' => '12h', 'in' => 52, 'out' => 88],
-                        ['time' => '13h', 'in' => 78, 'out' => 35],
-                        ['time' => '15h', 'in' => 25, 'out' => 30],
-                        ['time' => '17h', 'in' => 35, 'out' => 95],
-                        ['time' => '18h', 'in' => 85, 'out' => 45],
-                        ['time' => '19h', 'in' => 90, 'out' => 25],
-                        ['time' => '21h', 'in' => 12, 'out' => 85],
-                        ['time' => '22h', 'in' => 5,  'out' => 98],
-                    ];
-                @endphp
-
-                @foreach ($hours as $h)
-                    <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
-                        <div class="w-full flex items-end justify-center gap-1 h-full">
-                            <!-- Barra Entrada -->
-                            <div 
-                                style="height: {{ ($h['in'] / 100) * 85 }}%;"
-                                class="w-1/2 max-w-[14px] bg-emerald-600 rounded-t-sm group-hover:bg-emerald-500 transition-all relative"
-                                title="{{ $h['in'] }} Entradas às {{ $h['time'] }}"
-                            ></div>
-                            <!-- Barra Saída -->
-                            <div 
-                                style="height: {{ ($h['out'] / 100) * 85 }}%;"
-                                class="w-1/2 max-w-[14px] bg-amber-600 rounded-t-sm group-hover:bg-amber-500 transition-all relative"
-                                title="{{ $h['out'] }} Saídas às {{ $h['time'] }}"
-                            ></div>
-                        </div>
-                        <span class="text-[10px] text-on-surface-variant font-mono">{{ $h['time'] }}</span>
+            @foreach ($hours as $h)
+                <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
+                    <div class="w-full flex items-end justify-center gap-1.5 h-full">
+                        <!-- Barra Entrada -->
+                        <div 
+                            style="height: {{ ($h['in'] / 100) * 85 }}%;"
+                            class="w-1/2 max-w-[16px] bg-emerald-600 rounded-t-sm group-hover:bg-emerald-500 transition-all relative"
+                            title="{{ $h['in'] }} Entradas às {{ $h['time'] }}"
+                        ></div>
+                        <!-- Barra Saída -->
+                        <div 
+                            style="height: {{ ($h['out'] / 100) * 85 }}%;"
+                            class="w-1/2 max-w-[16px] bg-amber-600 rounded-t-sm group-hover:bg-amber-500 transition-all relative"
+                            title="{{ $h['out'] }} Saídas às {{ $h['time'] }}"
+                        ></div>
                     </div>
-                @endforeach
-            </div>
+                    <span class="text-[10px] text-on-surface-variant font-mono">{{ $h['time'] }}</span>
+                </div>
+            @endforeach
+        </div>
 
-            <div class="p-3 bg-surface-container-low rounded-xl border border-surface-container/60 flex items-center justify-between text-xs text-on-surface-variant">
-                <span>Horários de Maior Pico: <strong>07:30 - 08:30</strong> (Abertura Aulas) e <strong>18:30 - 19:15</strong> (Turno Noturno).</span>
-                <span class="font-bold text-primary">Tempo Médio de Liberação: 1.8s</span>
-            </div>
+        <div class="p-3 bg-surface-container-low rounded-xl border border-surface-container/60 flex items-center justify-between text-xs text-on-surface-variant flex-wrap gap-2">
+            <span>Horários de Maior Pico: <strong>07:30 - 08:30</strong> (Abertura Aulas) e <strong>18:30 - 19:15</strong> (Turno Noturno).</span>
+            <span class="font-bold text-primary">Tempo Médio de Liberação: 1.8s</span>
         </div>
     </div>
 

@@ -14,13 +14,11 @@ class Login extends Component
 
     public string $password = '123456';
 
-    public string $profile = 'guarita'; // guarita ou admin
-
     public bool $remember = true;
 
     public function login(): mixed
     {
-        if ($this->profile === 'admin' || str_starts_with(strtoupper($this->accessCode), 'ADM')) {
+        if (str_starts_with(strtoupper(trim($this->accessCode)), 'ADM')) {
             return $this->redirectRoute('admin.dashboard', navigate: true);
         }
 

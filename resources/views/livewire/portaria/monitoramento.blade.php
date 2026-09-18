@@ -36,24 +36,12 @@
             </p>
         </div>
 
-        <!-- Telemetria WebSocket Reverb + Simulação -->
-        <div class="flex items-center gap-3 self-start lg:self-auto flex-wrap">
-            <div class="flex items-center gap-2.5 px-3.5 py-2 bg-surface-container-low rounded-xl border border-surface-container/80">
-                <span class="relative flex h-3 w-3">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-on-surface leading-tight">Reverb WebSocket</span>
-                    <span class="text-[10px] text-on-surface-variant font-mono">Conexão Ativa • 14ms</span>
-                </div>
-            </div>
-
-            <!-- Botão de Simulação em Tempo Real -->
+        <!-- Botão de Simulação em Tempo Real -->
+        <div class="flex items-center gap-3 self-start lg:self-auto">
             <button 
                 type="button" 
                 wire:click="simulateNewCapture"
-                class="px-3.5 py-2 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                class="px-4 py-2.5 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 title="Simular passagem capturada pelo app móvel"
             >
                 <span class="material-symbols-outlined text-[16px]">sensors</span>
@@ -62,8 +50,8 @@
         </div>
     </div>
 
-    <!-- METRICS STRIP -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- METRICS STRIP (3 CARDS) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs flex items-center justify-between">
             <div>
                 <span class="text-xs font-bold text-on-surface-variant uppercase">Passagens Hoje</span>
@@ -91,18 +79,6 @@
             </div>
             <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
                 <span class="material-symbols-outlined text-[24px]">edit_note</span>
-            </div>
-        </div>
-
-        <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-xs font-bold text-on-surface-variant uppercase">Vagas no Pátio</span>
-                <div class="text-2xl sm:text-3xl font-extrabold text-primary font-mono">
-                    {{ $occupiedSpots }}<span class="text-sm text-on-surface-variant font-normal">/{{ $totalSpots }}</span>
-                </div>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[24px]">local_parking</span>
             </div>
         </div>
     </div>

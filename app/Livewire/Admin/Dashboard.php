@@ -20,10 +20,6 @@ class Dashboard extends Component
 
     public int $totalPassageRecords = 18942;
 
-    public int $parkingOccupancy = 162;
-
-    public int $parkingCapacity = 200;
-
     public string $periodFilter = 'hoje';
 
     public array $recentAuditLogs = [

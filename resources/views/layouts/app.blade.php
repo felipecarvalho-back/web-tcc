@@ -25,7 +25,7 @@
         class="fixed inset-y-0 left-0 z-50 w-72 bg-surface-container-lowest border-r border-surface-container shadow-xs flex flex-col justify-between transition-transform duration-300 md:translate-x-0 no-print"
         :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
-        <div class="p-5 flex flex-col gap-5 overflow-y-auto">
+        <div class="p-5 flex flex-col gap-6 overflow-y-auto">
             <!-- Brand & Identidade -->
             <div class="flex items-center justify-between">
                 <a href="{{ $isAdminArea ? route('admin.dashboard') : route('portaria.monitoramento') }}" class="flex items-center gap-3 group">
@@ -37,54 +37,26 @@
                             <span class="text-xl font-bold text-primary tracking-tight">Sentinela</span>
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-primary-container text-white">FATEC</span>
                         </div>
-                        <span class="text-xs text-on-surface-variant font-medium tracking-wide">Controle de Portaria</span>
+                        <span class="text-xs text-on-surface-variant font-medium tracking-wide">
+                            {{ $isAdminArea ? 'Painel Administrativo' : 'Terminal da Guarita' }}
+                        </span>
                     </div>
                 </a>
 
                 <!-- Fechar menu mobile -->
                 <button 
                     type="button" 
-                    class="md:hidden p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container"
+                    class="md:hidden p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container cursor-pointer"
                     @click="mobileMenuOpen = false"
                 >
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
 
-            <!-- SELETOR DE ÁREA: GUARITA OU ADMIN -->
-            <div class="p-1 bg-surface-container rounded-xl flex items-center gap-1 border border-surface-container-highest/60">
-                <a 
-                    href="{{ route('portaria.monitoramento') }}" 
-                    class="flex-1 py-2 px-2.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all {{ !$isAdminArea ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}"
-                >
-                    <span class="material-symbols-outlined text-[16px]">security</span>
-                    <span>Guarita</span>
-                </a>
-                <a 
-                    href="{{ route('admin.dashboard') }}" 
-                    class="flex-1 py-2 px-2.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all {{ $isAdminArea ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}"
-                >
-                    <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-                    <span>Admin</span>
-                </a>
-            </div>
-
-            <!-- WebSocket Status -->
-            <div class="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg border border-surface-container/60">
-                <span class="relative flex h-2.5 w-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-on-surface">Reverb Online</span>
-                    <span class="text-[10px] text-on-surface-variant">Sincronização em tempo real</span>
-                </div>
-            </div>
-
-            <!-- Navegação contextual -->
+            <!-- Navegação -->
             <nav class="flex flex-col gap-4">
                 @if (!$isAdminArea)
-                    <!-- MENU DO GUARDA / PORTARIA -->
+                    <!-- MENU DA GUARITA -->
                     <div class="flex flex-col gap-1">
                         <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-3 mb-1">
                             Operação da Guarita
@@ -110,7 +82,7 @@
                     <!-- MENU ADMINISTRATIVO -->
                     <div class="flex flex-col gap-1">
                         <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider px-3 mb-1">
-                            Gestão Administrativa
+                            Administração
                         </span>
 
                         <a 
@@ -151,7 +123,7 @@
                 </div>
                 <div class="flex flex-col min-w-0">
                     <span class="text-sm font-bold text-on-surface truncate">
-                        {{ $isAdminArea ? 'Administrador' : 'Guarda Silva' }}
+                        {{ $isAdminArea ? 'Administrador' : 'Operador Guarita' }}
                     </span>
                     <span class="text-xs text-on-surface-variant truncate font-mono">
                         {{ $isAdminArea ? 'Código: ADM-001' : 'Código: GDA-104' }}
@@ -184,7 +156,7 @@
             <div class="flex items-center gap-3">
                 <button 
                     type="button" 
-                    class="md:hidden p-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
+                    class="md:hidden p-2 rounded-lg text-on-surface-variant hover:bg-surface-container cursor-pointer"
                     @click="mobileMenuOpen = true"
                 >
                     <span class="material-symbols-outlined text-[22px]">menu</span>

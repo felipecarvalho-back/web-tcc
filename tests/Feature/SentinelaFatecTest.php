@@ -15,7 +15,6 @@ test('a tela de login carrega e redireciona para a portaria por codigo', functio
 
     Livewire::test(Login::class)
         ->set('accessCode', 'GDA-104')
-        ->set('profile', 'guarita')
         ->call('login')
         ->assertRedirect(route('portaria.monitoramento'));
 });

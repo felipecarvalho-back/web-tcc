@@ -40,10 +40,6 @@ class Monitoramento extends Component
 
     public int $manualCorrections = 17;
 
-    public int $occupiedSpots = 162;
-
-    public int $totalSpots = 200;
-
     public function mount(): void
     {
         $this->records = [
@@ -161,9 +157,6 @@ class Monitoramento extends Component
             if ($record['id'] === $id) {
                 $record['status'] = 'saida';
                 $record['status_label'] = 'Saída Registrada';
-                if ($this->occupiedSpots > 0) {
-                    $this->occupiedSpots--;
-                }
                 $this->triggerToast("Saída registrada para o veículo {$record['plate']}!", 'info');
                 break;
             }
@@ -178,7 +171,6 @@ class Monitoramento extends Component
                 $record['status_label'] = 'Liberado Manualmente';
                 $record['driver_name'] = 'Prof. FATEC (Acesso Concedido por Exceção)';
                 $this->totalPassages++;
-                $this->occupiedSpots++;
                 $this->triggerToast('Entrada permitida para docente c/ acesso! Cancela #01 aberta.', 'success');
                 break;
             }
@@ -207,8 +199,7 @@ class Monitoramento extends Component
         array_unshift($this->records, $newRecord);
         $this->totalPassages++;
         $this->automaticPassages++;
-        $this->occupiedSpots++;
-        $this->triggerToast('Novo evento WebSocket: Veículo identificado pelo OCR na guarita!', 'success');
+        $this->triggerToast('Novo veículo identificado pela câmera da guarita!', 'success');
     }
 
     private function triggerToast(string $message, string $type = 'success'): void
