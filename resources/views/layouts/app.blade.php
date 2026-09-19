@@ -22,7 +22,7 @@
 
     <!-- SIDEBAR PERSISTENTE -->
     <aside 
-        class="fixed inset-y-0 left-0 z-50 w-72 bg-surface-container-lowest border-r border-surface-container shadow-xs flex flex-col justify-between transition-transform duration-300 md:translate-x-0 no-print"
+        class="fixed inset-y-0 left-0 z-30 w-72 bg-surface-container-lowest border-r border-surface-container shadow-xs flex flex-col justify-between transition-transform duration-300 md:translate-x-0 no-print"
         :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
         <div class="p-5 flex flex-col gap-6 overflow-y-auto">
@@ -146,13 +146,13 @@
         x-show="mobileMenuOpen" 
         x-cloak 
         @click="mobileMenuOpen = false" 
-        class="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
+        class="fixed inset-0 z-30 bg-black/40 backdrop-blur-xs md:hidden"
     ></div>
 
     <!-- ÁREA PRINCIPAL -->
     <div class="md:pl-72 flex flex-col min-h-screen">
         <!-- TOPBAR -->
-        <header class="sticky top-0 z-30 h-16 bg-surface/90 backdrop-blur-md border-b border-surface-container flex items-center justify-between px-4 sm:px-8 no-print">
+        <header class="sticky top-0 z-20 h-16 bg-surface/90 backdrop-blur-md border-b border-surface-container flex items-center justify-between px-4 sm:px-8 no-print">
             <div class="flex items-center gap-3">
                 <button 
                     type="button" 

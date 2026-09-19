@@ -18,8 +18,17 @@ $maxWidthClass = match ($maxWidth) {
 };
 @endphp
 
-<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-    <div {{ $attributes->merge(['class' => "w-full {$maxWidthClass} bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150"]) }}>
+<div 
+    x-data 
+    x-init="document.body.classList.add('overflow-hidden'); $cleanup(() => document.body.classList.remove('overflow-hidden'))"
+    @keydown.escape.window="{{ $onClose ? '$wire.' . $onClose . '()' : '' }}"
+    @click="{{ $onClose ? '$wire.' . $onClose . '()' : '' }}"
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain select-none md:select-auto"
+>
+    <div 
+        @click.stop
+        {{ $attributes->merge(['class' => "w-full {$maxWidthClass} bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150 select-text"]) }}
+    >
         <!-- Header -->
         <div class="px-6 py-4 bg-primary text-white flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -48,8 +57,8 @@ $maxWidthClass = match ($maxWidth) {
             @endif
         </div>
 
-        <!-- Body -->
-        <div class="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
+        <!-- Body com contenção de rolagem para impedir movimento da barra lateral e do fundo -->
+        <div class="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto overscroll-contain">
             {{ $slot }}
         </div>
 
