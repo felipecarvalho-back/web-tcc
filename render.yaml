@@ -10,6 +10,8 @@ services:
         value: production
       - key: APP_DEBUG
         value: false
+      - key: APP_URL
+        value: https://web-tcc.onrender.com
       - key: DB_CONNECTION
         value: sqlite
       - key: SESSION_DRIVER

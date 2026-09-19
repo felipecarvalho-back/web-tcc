@@ -110,8 +110,8 @@ RUN mkdir -p /app/storage/framework/sessions \
     chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/database && \
     chmod -R 775 /app/storage /app/bootstrap/cache /app/database
 
-# Portas suportadas (8080 padrão / 10000 Render / 80)
-EXPOSE 80 8080 10000
+# Porta padrão do Render
+EXPOSE 10000
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/local/bin/frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
