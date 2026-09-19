@@ -19,10 +19,17 @@ $maxWidthClass = match ($maxWidth) {
 @endphp
 
 <div 
-    x-data 
+    x-data="{
+        closeModal() {
+            document.body.classList.remove('overflow-hidden');
+            @if ($onClose)
+                $wire.{{ $onClose }}();
+            @endif
+        }
+    }" 
     x-init="document.body.classList.add('overflow-hidden'); $cleanup(() => document.body.classList.remove('overflow-hidden'))"
-    @keydown.escape.window="{{ $onClose ? '$wire.' . $onClose . '()' : '' }}"
-    @click="{{ $onClose ? '$wire.' . $onClose . '()' : '' }}"
+    @keydown.escape.window="closeModal()"
+    @click="closeModal()"
     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain select-none md:select-auto"
 >
     <div 
@@ -49,7 +56,7 @@ $maxWidthClass = match ($maxWidth) {
             @if ($onClose)
                 <button 
                     type="button" 
-                    wire:click="{{ $onClose }}"
+                    @click="closeModal()"
                     class="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                     <span class="material-symbols-outlined text-[20px]">close</span>

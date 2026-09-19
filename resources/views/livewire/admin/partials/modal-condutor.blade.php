@@ -159,6 +159,7 @@
         <x-slot:footer>
             <button 
                 type="button" 
+                @click="document.body.classList.remove('overflow-hidden')"
                 wire:click="closeFormModal"
                 class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors cursor-pointer"
             >

@@ -14,7 +14,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="bg-background text-on-surface font-sans min-h-screen antialiased selection:bg-primary-container selection:text-white" x-data="{ mobileMenuOpen: false }">
+<body class="bg-background text-on-surface font-sans min-h-screen antialiased selection:bg-primary-container selection:text-white" x-data="{ mobileMenuOpen: false }" @modal-closed.window="document.body.classList.remove('overflow-hidden')">
 
     @php
         $isAdminArea = request()->is('admin*');

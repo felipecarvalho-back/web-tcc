@@ -200,6 +200,7 @@ class Condutores extends Component
     {
         $this->showFormModal = false;
         $this->resetForm();
+        $this->dispatch('modal-closed');
     }
 
     public function save(): void
