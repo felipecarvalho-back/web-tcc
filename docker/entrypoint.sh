@@ -40,5 +40,5 @@ if [ "$APP_ENV" = "production" ]; then
     php artisan view:cache --no-interaction
 fi
 
-echo "[Sentinela] Iniciando FrankenPHP na porta ${PORT:-8080}..."
+echo "[Sentinela] Iniciando FrankenPHP na porta ${PORT:-10000}..."
 exec "$@"
