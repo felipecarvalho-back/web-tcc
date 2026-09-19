@@ -31,14 +31,19 @@ ENV APP_ENV="production" \
     PHP_INI_DIR="/usr/local/etc/php" \
     COMPOSER_ALLOW_SUPERUSER=1
 
-# Instala dependências do sistema necessárias para o Composer
+# Instala dependências do sistema necessárias para o Composer e gerenciamento de capacidades
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     unzip \
+    libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Instala o binário oficial do Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Remove capacidades do binário do FrankenPHP para permitir execução em ambientes restritos como o Render (no-new-privileges)
+RUN setcap -r /usr/local/bin/frankenphp || true && \
+    chmod 755 /usr/local/bin/frankenphp
 
 # Instala extensões PHP necessárias para Laravel e SQLite
 RUN install-php-extensions \
@@ -105,8 +110,8 @@ RUN mkdir -p /app/storage/framework/sessions \
     chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/database && \
     chmod -R 775 /app/storage /app/bootstrap/cache /app/database
 
-# Portas suportadas (80 padrão / 10000 Render)
-EXPOSE 80 10000
+# Portas suportadas (8080 padrão / 10000 Render / 80)
+EXPOSE 80 8080 10000
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+CMD ["/usr/local/bin/frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
