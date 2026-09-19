@@ -8,11 +8,11 @@ use App\Livewire\Portaria\Monitoramento;
 use App\Livewire\Portaria\Visitantes;
 use Illuminate\Support\Facades\Route;
 
-// Autenticação
+// Autenticação (A aplicação sempre inicia pelo Login)
+Route::get('/', Login::class)->name('home');
 Route::get('/login', Login::class)->name('login');
 
 // Módulo Guarda / Portaria
-Route::get('/', Monitoramento::class)->name('home');
 Route::get('/portaria', Monitoramento::class)->name('portaria.monitoramento');
 Route::get('/portaria/visitantes', Visitantes::class)->name('portaria.visitantes');
 

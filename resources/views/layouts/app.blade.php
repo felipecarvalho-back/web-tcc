@@ -64,7 +64,7 @@
                         
                         <a 
                             href="{{ route('portaria.monitoramento') }}"
-                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all {{ request()->routeIs('portaria.monitoramento') || request()->is('/') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all {{ request()->routeIs('portaria.monitoramento') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[20px]">videocam</span>
                             <span>Início / Monitoramento</span>
