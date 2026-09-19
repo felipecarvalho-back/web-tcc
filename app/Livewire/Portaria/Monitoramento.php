@@ -125,6 +125,7 @@ class Monitoramento extends Component
     {
         $this->showCorrectionModal = false;
         $this->selectedRecord = null;
+        $this->dispatch('modal-closed');
     }
 
     public function confirmCorrection(): void
@@ -132,6 +133,8 @@ class Monitoramento extends Component
         if (! $this->selectedRecord) {
             return;
         }
+
+        $this->dispatch('modal-closed');
 
         $targetId = $this->selectedRecord['id'];
 

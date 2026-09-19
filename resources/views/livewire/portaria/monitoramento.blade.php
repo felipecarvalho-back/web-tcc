@@ -1,21 +1,6 @@
 <div class="flex flex-col gap-6">
     <!-- TOAST NOTIFICATION -->
-    @if ($toastMessage)
-        <div 
-            x-data="{ show: true }" 
-            x-show="show" 
-            x-init="setTimeout(() => { show = false; $wire.clearToast(); }, 4000)"
-            class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all {{ $toastType === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-surface-container-highest text-on-surface border-surface-container' }}"
-        >
-            <span class="material-symbols-outlined text-[20px]">
-                {{ $toastType === 'success' ? 'check_circle' : 'info' }}
-            </span>
-            <span>{{ $toastMessage }}</span>
-            <button type="button" @click="show = false; $wire.clearToast()" class="ml-2 text-white/80 hover:text-white">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    @endif
+    <x-toast :message="$toastMessage" :type="$toastType" />
 
     <!-- CONTEXT & TELEMETRIA OPERACIONAL DA GUARITA -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs">
@@ -201,15 +186,7 @@
 
                             <!-- Card de Placa Mercosul -->
                             <td class="py-3 px-4">
-                                <div class="inline-flex flex-col rounded-md bg-white border border-gray-300 shadow-xs overflow-hidden w-28 text-center">
-                                    <div class="bg-blue-800 text-white text-[9px] font-bold py-0.5 tracking-wider uppercase flex items-center justify-between px-1.5">
-                                        <span>Brasil</span>
-                                        <span class="text-[7px]">BR</span>
-                                    </div>
-                                    <div class="text-sm font-extrabold tracking-widest text-gray-900 py-1 font-mono">
-                                        {{ $record['plate'] }}
-                                    </div>
-                                </div>
+                                <x-mercosul-plate :plate="$record['plate']" />
 
                                 <div class="flex items-center gap-1 mt-1 text-[11px] font-bold {{ $record['confidence'] >= 90 ? 'text-emerald-700' : ($record['confidence'] >= 75 ? 'text-amber-700' : 'text-primary') }}">
                                     <span class="material-symbols-outlined text-[14px]">
@@ -328,133 +305,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE CORREÇÃO DE PLACA -->
-    @if ($showCorrectionModal && $selectedRecord)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div class="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
-                <!-- Modal Header -->
-                <div class="px-6 py-4 bg-primary text-white flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-white">
-                            <span class="material-symbols-outlined text-[22px]">document_scanner</span>
-                        </div>
-                        <div class="flex flex-col">
-                            <h3 class="text-base font-bold text-white leading-tight">
-                                Correção Manual de Placa - Registro #{{ $selectedRecord['id'] }}
-                            </h3>
-                            <span class="text-[11px] text-white/80">Intervenção Operacional da Guarita</span>
-                        </div>
-                    </div>
-                    <button 
-                        type="button" 
-                        wire:click="closeCorrectionModal"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-
-                <!-- Modal Body -->
-                <div class="p-6 flex flex-col gap-5">
-                    <!-- Foto Capturada com Região OCR -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded-xl border border-surface-container">
-                        <div class="flex flex-col gap-1.5">
-                            <span class="text-[11px] font-bold text-on-surface-variant uppercase">Captura da Câmera</span>
-                            <div class="relative h-32 rounded-lg overflow-hidden bg-black flex items-center justify-center">
-                                <img src="{{ $selectedRecord['image_url'] }}" alt="Captura" class="w-full h-full object-cover">
-                                <div class="absolute inset-x-6 inset-y-6 rounded border-2 border-dashed border-amber-400 pointer-events-none flex items-end justify-start p-1">
-                                    <span class="bg-amber-500 text-black font-extrabold text-[9px] px-1 rounded">Região OCR</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col justify-between">
-                            <div>
-                                <span class="text-[11px] font-bold text-on-surface-variant uppercase">Dados da Passagem</span>
-                                <div class="mt-2 space-y-1.5 text-xs">
-                                    <div class="flex justify-between py-1 border-b border-surface-container">
-                                        <span class="text-on-surface-variant">Horário:</span>
-                                        <span class="font-bold text-on-surface font-mono">{{ $selectedRecord['registered_at'] }}</span>
-                                    </div>
-                                    <div class="flex justify-between py-1 border-b border-surface-container">
-                                        <span class="text-on-surface-variant">Leitura Bruta:</span>
-                                        <span class="font-bold text-on-surface font-mono">{{ $selectedRecord['raw_ocr'] }}</span>
-                                    </div>
-                                    <div class="flex justify-between py-1">
-                                        <span class="text-on-surface-variant">Confiança:</span>
-                                        <span class="font-bold text-amber-600">{{ $selectedRecord['confidence'] }}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Campos de Correção -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-bold text-on-surface">
-                                Placa Corrigida (Mercosul / Padrão)
-                            </label>
-                            <input 
-                                wire:model="correctedPlate" 
-                                type="text" 
-                                class="w-full h-11 px-3 bg-surface-container-lowest border-2 border-primary/50 focus:border-primary text-on-surface font-mono font-extrabold text-base uppercase rounded-xl focus:outline-none tracking-widest text-center"
-                                placeholder="Ex: BRA-2E19"
-                            />
-                        </div>
-
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-bold text-on-surface">
-                                Vincular Categoria
-                            </label>
-                            <select 
-                                wire:model="correctionCategory"
-                                class="w-full h-11 px-3 bg-surface-container-lowest border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary"
-                            >
-                                <option value="professor">Professor (Docente FATEC)</option>
-                                <option value="funcionario">Funcionário Administrativo</option>
-                                <option value="prestador">Prestador de Serviço</option>
-                                <option value="visitante">Visitante / Convidado</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Justificativa -->
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface">
-                            Justificativa da Correção
-                        </label>
-                        <select 
-                            wire:model="correctionJustification"
-                            class="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-highest text-on-surface text-xs font-medium rounded-xl focus:outline-none focus:border-primary"
-                        >
-                            <option value="Reflexo solar sobre o caractere da placa">Reflexo solar sobre o caractere da placa</option>
-                            <option value="Caractere 8 confundido com B ou 0 com O">Caractere 8 confundido com B ou 0 com O</option>
-                            <option value="Placa física suja / desgastada">Placa física suja / desgastada</option>
-                            <option value="Ângulo de captura inadequado">Ângulo de captura inadequado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="px-6 py-4 bg-surface-container-low border-t border-surface-container flex items-center justify-end gap-3">
-                    <button 
-                        type="button" 
-                        wire:click="closeCorrectionModal"
-                        class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors cursor-pointer"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        type="button" 
-                        wire:click="confirmCorrection"
-                        class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">verified</span>
-                        <span>Confirmar Correção e Liberar Cancela</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
+    <!-- MODAL DE CORREÇÃO DE PLACA (COMPONENTE PARCIAL) -->
+    @include('livewire.portaria.partials.modal-correcao-placa')
 </div>

@@ -1,21 +1,6 @@
 <div class="flex flex-col gap-6">
     <!-- TOAST NOTIFICATION -->
-    @if ($toastMessage)
-        <div 
-            x-data="{ show: true }" 
-            x-show="show" 
-            x-init="setTimeout(() => { show = false; $wire.clearToast(); }, 4000)"
-            class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all {{ $toastType === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-surface-container-highest text-on-surface border-surface-container' }}"
-        >
-            <span class="material-symbols-outlined text-[20px]">
-                {{ $toastType === 'success' ? 'check_circle' : 'info' }}
-            </span>
-            <span>{{ $toastMessage }}</span>
-            <button type="button" @click="show = false; $wire.clearToast()" class="ml-2 text-white/80 hover:text-white">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    @endif
+    <x-toast :message="$toastMessage" :type="$toastType" />
 
     <!-- CONTEXTO TOPO -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs">
@@ -230,14 +215,7 @@
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <!-- Card de Placa -->
-                                <div class="inline-flex flex-col rounded bg-white border border-gray-300 shadow-xs overflow-hidden w-20 text-center shrink-0">
-                                    <div class="bg-blue-800 text-white text-[7px] font-bold py-0.5 tracking-wider uppercase">
-                                        Brasil
-                                    </div>
-                                    <div class="text-[11px] font-extrabold tracking-wider text-gray-900 py-0.5 font-mono">
-                                        {{ $visitor['plate'] }}
-                                    </div>
-                                </div>
+                                <x-mercosul-plate :plate="$visitor['plate']" size="sm" />
                                 <div class="flex flex-col min-w-0">
                                     <span class="text-xs font-bold text-on-surface truncate">{{ $visitor['name'] }}</span>
                                     <span class="text-[11px] text-on-surface-variant font-mono">{{ $visitor['cpf'] }}</span>
