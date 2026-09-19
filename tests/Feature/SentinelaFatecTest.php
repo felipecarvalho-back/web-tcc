@@ -43,6 +43,18 @@ test('o botao de permitir entrada de professor sem cadastro libera o acesso por 
         ->assertSee('Liberado Manualmente');
 });
 
+test('o modal de liberacao manual permite autorizar professor por codigo de acesso', function () {
+    Livewire::test(Monitoramento::class)
+        ->call('openManualEntryModal', 1082)
+        ->assertSet('showManualEntryModal', true)
+        ->set('professorAccessCode', 'DOC-94281')
+        ->assertSet('identifiedProfessor.name', 'Prof. Dr. Marcos Souza')
+        ->call('confirmManualEntry')
+        ->assertSet('showManualEntryModal', false)
+        ->assertSee('Liberado Manualmente')
+        ->assertSee('Prof. Dr. Marcos Souza');
+});
+
 test('a tela de cadastro rapido de visitantes registra novo visitante e valida campos', function () {
     $this->get('/portaria/visitantes')
         ->assertOk()

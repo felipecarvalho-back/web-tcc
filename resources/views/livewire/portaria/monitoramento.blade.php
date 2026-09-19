@@ -258,9 +258,9 @@
                                     <!-- Botão 3: Permitir Entrada se o professor tem acesso -->
                                     <button 
                                         type="button" 
-                                        wire:click="allowManualEntry({{ $record['id'] }})"
+                                        wire:click="openManualEntryModal({{ $record['id'] }})"
                                         class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
-                                        title="Permitir entrada de docente com acesso concedido"
+                                        title="Permitir entrada manual digitando o código do professor"
                                     >
                                         <span class="material-symbols-outlined text-[15px]">badge</span>
                                         <span>Permitir Entrada (Prof)</span>
@@ -307,4 +307,7 @@
 
     <!-- MODAL DE CORREÇÃO DE PLACA (COMPONENTE PARCIAL) -->
     @include('livewire.portaria.partials.modal-correcao-placa')
+
+    <!-- MODAL DE LIBERAÇÃO MANUAL DE DOCENTE (COMPONENTE PARCIAL) -->
+    @include('livewire.portaria.partials.modal-liberacao-manual')
 </div>

@@ -20,6 +20,8 @@ class Monitoramento extends Component
 
     public bool $showCorrectionModal = false;
 
+    public bool $showManualEntryModal = false;
+
     public ?array $selectedRecord = null;
 
     public string $correctedPlate = '';
@@ -27,6 +29,44 @@ class Monitoramento extends Component
     public string $correctionJustification = 'Reflexo solar sobre o caractere da placa';
 
     public string $correctionCategory = 'professor';
+
+    public string $professorAccessCode = '';
+
+    public string $manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
+
+    public ?array $identifiedProfessor = null;
+
+    public string $manualEntryError = '';
+
+    /**
+     * @var array<int, array<string, string>>
+     */
+    public array $authorizedProfessors = [
+        [
+            'code' => 'DOC-94281',
+            'name' => 'Prof. Dr. Marcos Souza',
+            'department' => 'DSM - Desenvolvimento de Software',
+            'status' => 'Ativo',
+        ],
+        [
+            'code' => 'DOC-88312',
+            'name' => 'Profa. Dra. Juliana Rezende',
+            'department' => 'GTI - Gestão de TI',
+            'status' => 'Ativo',
+        ],
+        [
+            'code' => 'DOC-74192',
+            'name' => 'Prof. Me. André Cavalcante',
+            'department' => 'Banco de Dados & IA',
+            'status' => 'Ativo',
+        ],
+        [
+            'code' => 'DOC-65201',
+            'name' => 'Prof. Dr. Ricardo Alencar',
+            'department' => 'Engenharia de Software',
+            'status' => 'Ativo',
+        ],
+    ];
 
     public string $toastMessage = '';
 
@@ -166,13 +206,125 @@ class Monitoramento extends Component
         }
     }
 
-    public function allowManualEntry(int $id): void
+    public function openManualEntryModal(int $id): void
     {
+        foreach ($this->records as $record) {
+            if ($record['id'] === $id) {
+                $this->selectedRecord = $record;
+                $this->showManualEntryModal = true;
+                $this->professorAccessCode = '';
+                $this->identifiedProfessor = null;
+                $this->manualEntryError = '';
+                $this->manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
+
+                return;
+            }
+        }
+    }
+
+    public function closeManualEntryModal(): void
+    {
+        $this->showManualEntryModal = false;
+        $this->selectedRecord = null;
+        $this->professorAccessCode = '';
+        $this->identifiedProfessor = null;
+        $this->manualEntryError = '';
+        $this->dispatch('modal-closed');
+    }
+
+    public function updatedProfessorAccessCode(string $value): void
+    {
+        $this->validateAndFindProfessor($value);
+    }
+
+    public function selectProfessorCode(string $code): void
+    {
+        $this->professorAccessCode = $code;
+        $this->validateAndFindProfessor($code);
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function validateAndFindProfessor(string $code): ?array
+    {
+        $cleanCode = strtoupper(trim($code));
+        $this->manualEntryError = '';
+
+        if ($cleanCode === '') {
+            $this->identifiedProfessor = null;
+
+            return null;
+        }
+
+        foreach ($this->authorizedProfessors as $prof) {
+            if (
+                strtoupper($prof['code']) === $cleanCode ||
+                str_replace('DOC-', '', strtoupper($prof['code'])) === str_replace('DOC-', '', $cleanCode)
+            ) {
+                $this->identifiedProfessor = $prof;
+
+                return $prof;
+            }
+        }
+
+        $this->identifiedProfessor = null;
+        $this->manualEntryError = 'Código não encontrado. Verifique a matrícula funcional do professor.';
+
+        return null;
+    }
+
+    public function confirmManualEntry(): void
+    {
+        if (! $this->selectedRecord) {
+            return;
+        }
+
+        $prof = $this->validateAndFindProfessor($this->professorAccessCode);
+
+        if (! $prof) {
+            $this->manualEntryError = 'Informe um código de acesso válido de um professor cadastrado.';
+
+            return;
+        }
+
+        $this->dispatch('modal-closed');
+
+        $targetId = $this->selectedRecord['id'];
+
+        foreach ($this->records as &$record) {
+            if ($record['id'] === $targetId) {
+                $record['status'] = 'autorizado';
+                $record['status_label'] = 'Liberado Manualmente';
+                $record['driver_name'] = "{$prof['name']} (Docente c/ Carro Terceiro)";
+                $record['category'] = 'professor';
+                $record['category_label'] = "Docente • {$prof['department']}";
+                break;
+            }
+        }
+
+        $this->totalPassages++;
+        $this->showManualEntryModal = false;
+        $this->triggerToast("Acesso autorizado para {$prof['name']} (Código: {$prof['code']})! Cancela #01 liberada.", 'success');
+    }
+
+    public function allowManualEntry(int $id, ?string $code = null): void
+    {
+        if ($code !== null) {
+            $this->openManualEntryModal($id);
+            $this->professorAccessCode = $code;
+            $this->confirmManualEntry();
+
+            return;
+        }
+
+        // Suporte a chamada direta
         foreach ($this->records as &$record) {
             if ($record['id'] === $id) {
                 $record['status'] = 'autorizado';
                 $record['status_label'] = 'Liberado Manualmente';
-                $record['driver_name'] = 'Prof. FATEC (Acesso Concedido por Exceção)';
+                $record['driver_name'] = 'Prof. Dr. Marcos Souza (Acesso Excepcional)';
+                $record['category'] = 'professor';
                 $this->totalPassages++;
                 $this->triggerToast('Entrada permitida para docente c/ acesso! Cancela #01 aberta.', 'success');
                 break;
