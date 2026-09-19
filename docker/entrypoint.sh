@@ -6,8 +6,8 @@ mkdir -p /app/database
 if [ ! -f /app/database/database.sqlite ]; then
     touch /app/database/database.sqlite
 fi
-chown -R www-data:www-data /app/database
-chmod -R 775 /app/database
+chown -R www-data:www-data /app/database 2>/dev/null || true
+chmod -R 775 /app/database 2>/dev/null || true
 
 # Garante diretórios de cache e logs do Laravel
 mkdir -p /app/storage/framework/sessions \
@@ -15,8 +15,8 @@ mkdir -p /app/storage/framework/sessions \
          /app/storage/framework/cache \
          /app/storage/logs \
          /app/bootstrap/cache
-chown -R www-data:www-data /app/storage /app/bootstrap/cache
-chmod -R 775 /app/storage /app/bootstrap/cache
+chown -R www-data:www-data /app/storage /app/bootstrap/cache 2>/dev/null || true
+chmod -R 775 /app/storage /app/bootstrap/cache 2>/dev/null || true
 
 # Garante a existência de uma chave de aplicação (APP_KEY)
 if [ -z "$APP_KEY" ]; then
@@ -40,5 +40,5 @@ if [ "$APP_ENV" = "production" ]; then
     php artisan view:cache --no-interaction
 fi
 
-echo "[Sentinela] Iniciando FrankenPHP na porta ${PORT:-80}..."
+echo "[Sentinela] Iniciando FrankenPHP na porta ${PORT:-8080}..."
 exec "$@"
