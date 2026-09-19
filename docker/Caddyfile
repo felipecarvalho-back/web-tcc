@@ -1,0 +1,19 @@
+{
+    frankenphp
+    auto_https off
+}
+
+:{$PORT:80} {
+    root * /app/public
+    encode zstd br gzip
+
+    # Cache para assets estáticos e compilados pelo Vite
+    @static {
+        path /build/*
+        path *.ico *.svg *.png *.jpg *.jpeg *.webp *.woff *.woff2 *.ttf
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Servidor PHP via FrankenPHP com fallback para o index.php do Laravel
+    php_server
+}
