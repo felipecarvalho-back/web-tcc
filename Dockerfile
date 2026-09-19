@@ -28,7 +28,17 @@ FROM dunglas/frankenphp:php8.5-bookworm AS runner
 # Define variáveis de ambiente essenciais
 ENV APP_ENV="production" \
     APP_DEBUG="false" \
-    PHP_INI_DIR="/usr/local/etc/php"
+    PHP_INI_DIR="/usr/local/etc/php" \
+    COMPOSER_ALLOW_SUPERUSER=1
+
+# Instala dependências do sistema necessárias para o Composer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala o binário oficial do Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Instala extensões PHP necessárias para Laravel e SQLite
 RUN install-php-extensions \
