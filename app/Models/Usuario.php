@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
 
-class User extends Authenticatable
+class Usuario extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
@@ -19,11 +18,9 @@ class User extends Authenticatable
 
     protected $fillable = [
         'nome',
-        'name',
         'cpf',
         'email',
         'senha',
-        'password',
         'perfil',
         'codigo_operador',
         'ativo',
@@ -31,7 +28,6 @@ class User extends Authenticatable
 
     protected $hidden = [
         'senha',
-        'password',
         'remember_token',
     ];
 
@@ -41,29 +37,14 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'ativo' => 'boolean',
             'senha' => 'hashed',
-            'password' => 'hashed',
         ];
     }
 
     public function getAuthPassword(): string
     {
-        return $this->senha ?? $this->password ?? '';
-    }
-
-    /**
-     * Get the user's initials
-     */
-    public function initials(): string
-    {
-        $displayName = $this->nome ?? $this->name ?? 'User';
-        $initials = Str::initials($displayName, true);
-
-        return Str::length($initials) > 1
-            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
-            : $initials;
+        return $this->senha;
     }
 
     /**
