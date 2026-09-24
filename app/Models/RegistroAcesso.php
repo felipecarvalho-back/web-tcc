@@ -62,10 +62,10 @@ class RegistroAcesso extends Model
     /**
      * Operador/Porteiro que registrou a passagem
      *
-     * @return BelongsTo<User, $this>
+     * @return BelongsTo<Usuario, $this>
      */
     public function operador(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'operador_id');
+        return $this->belongsTo(Usuario::class, 'operador_id');
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class Usuario extends Authenticatable
 {
@@ -45,6 +46,19 @@ class Usuario extends Authenticatable
     public function getAuthPassword(): string
     {
         return $this->senha;
+    }
+
+    /**
+     * Iniciais do nome do usuário para avatar
+     */
+    public function initials(): string
+    {
+        $displayName = $this->nome ?? 'Usuario';
+        $initials = Str::initials($displayName, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 
     /**
