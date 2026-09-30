@@ -115,9 +115,9 @@ CREATE TABLE IF NOT EXISTS `registros_acesso` (
     `placa_registro` VARCHAR(10) NOT NULL,
 
     -- ENTRADA
+    `cancela` VARCHAR(50) NOT NULL DEFAULT 'Cancela 01 (Principal)',
     `data_hora_entrada` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `operador_id` BIGINT UNSIGNED NULL COMMENT 'Operador/Porteiro que autorizou a passagem',
-    `taxa_confianca` TINYINT UNSIGNED NULL COMMENT 'Precisão do OCR (0 a 100)',
     `foto_entrada_path` VARCHAR(255) NULL,
     `placa_corrigida` VARCHAR(10) NULL,
 

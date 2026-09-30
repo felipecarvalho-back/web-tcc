@@ -40,6 +40,7 @@ return new class extends Migration
         // 3. Especialização Prestadores de Serviço
         Schema::create('condutores_prestadores', function (Blueprint $table) {
             $table->unsignedBigInteger('condutor_id')->primary();
+            $table->string('codigo_acesso', 20)->nullable()->unique();
             $table->string('empresa', 100);
             $table->date('inicio_contrato')->nullable();
             $table->date('fim_contrato')->nullable();

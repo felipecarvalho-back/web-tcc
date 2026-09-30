@@ -80,7 +80,6 @@ class Monitoramento extends Component
                 'id' => 1084,
                 'plate' => 'BRA-2819',
                 'raw_ocr' => 'BRA-2819',
-                'confidence' => 72,
                 'driver_name' => 'Possível Prof. Dr. Marcos Souza',
                 'category' => 'professor',
                 'category_label' => 'Docente DSM (Desenvolvimento de Software)',
@@ -95,7 +94,6 @@ class Monitoramento extends Component
                 'id' => 1083,
                 'plate' => 'ABC-1234',
                 'raw_ocr' => 'ABC-1234',
-                'confidence' => 99,
                 'driver_name' => 'Carlos Silva',
                 'category' => 'prestador',
                 'category_label' => 'Manutenção Predial (Prestador de Serviço) • Tag Ativa',
@@ -110,7 +108,6 @@ class Monitoramento extends Component
                 'id' => 1082,
                 'plate' => 'FKX-9A42',
                 'raw_ocr' => 'FKX-9A42',
-                'confidence' => 88,
                 'driver_name' => 'Veículo Não Cadastrado',
                 'category' => 'visitante',
                 'category_label' => 'Motocicleta Entregador / Visitante Eventual',
@@ -125,7 +122,6 @@ class Monitoramento extends Component
                 'id' => 1081,
                 'plate' => 'GTR-4C88',
                 'raw_ocr' => 'GTR-4C88',
-                'confidence' => 98,
                 'driver_name' => 'Profa. Dra. Juliana Rezende',
                 'category' => 'professor',
                 'category_label' => 'Docente GTI (Gestão de TI) • Vaga Docente Reservada',
@@ -248,7 +244,6 @@ class Monitoramento extends Component
                     $record['plate'] = strtoupper(trim($this->correctedPlate));
                     $record['status'] = 'autorizado';
                     $record['status_label'] = 'Autorizado (Placa Corrigida)';
-                    $record['confidence'] = 100;
                     $this->manualCorrections++;
                 } else {
                     $record['status'] = 'autorizado';
@@ -372,7 +367,6 @@ class Monitoramento extends Component
             'id' => $newId,
             'plate' => 'FTC-'.rand(1000, 9999),
             'raw_ocr' => 'FTC-'.rand(1000, 9999),
-            'confidence' => rand(85, 99),
             'driver_name' => 'Prof. Dr. Ricardo Alencar',
             'category' => 'professor',
             'category_label' => 'Docente ADS • Vaga Reservada',

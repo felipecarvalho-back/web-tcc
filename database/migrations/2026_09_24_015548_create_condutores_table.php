@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nome', 100);
             $table->string('cpf', 14)->unique();
             $table->enum('tipo', ['funcionario', 'professor', 'prestador', 'visitante']);
+            $table->string('validade_acesso', 50)->nullable()->default('Indeterminado');
             $table->boolean('ativo')->default(true);
             $table->softDeletes();
             $table->timestamps();
