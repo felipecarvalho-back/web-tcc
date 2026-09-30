@@ -146,10 +146,22 @@ test('a tela de relatorios renderiza filtros e botao para geracao de pdf', funct
     $this->get('/admin/relatorios')
         ->assertOk()
         ->assertSee('Relatórios Gerenciais de Tráfego')
-        ->assertSee('Gerar Relatório em PDF');
+        ->assertSee('Gerar Relatório em PDF')
+        ->assertSee('Dia da Semana');
 
     Livewire::test(Relatorios::class)
         ->assertSee('REG-10492')
         ->set('eventType', 'entrada')
         ->assertSee('Entrada');
+});
+
+test('a tela de relatorios permite filtrar por dia da semana e assiduidade docente', function () {
+    Livewire::test(Relatorios::class)
+        ->set('dayOfWeekFilter', 'segunda')
+        ->assertSee('Segunda-feira')
+        ->set('driverSearch', 'Marcos')
+        ->assertSee('Prof. Dr. Marcos Souza')
+        ->call('clearAssiduidadeFilters')
+        ->assertSet('dayOfWeekFilter', 'todos')
+        ->assertSet('driverSearch', '');
 });
