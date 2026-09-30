@@ -94,6 +94,14 @@
                         </a>
 
                         <a 
+                            href="{{ route('admin.usuarios') }}"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.usuarios') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
+                        >
+                            <span class="material-symbols-outlined text-[19px]">manage_accounts</span>
+                            <span>Usuários do Sistema</span>
+                        </a>
+
+                        <a 
                             href="{{ route('admin.condutores') }}"
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.condutores') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >

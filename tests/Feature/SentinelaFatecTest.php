@@ -3,6 +3,7 @@
 use App\Livewire\Admin\Condutores;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Relatorios;
+use App\Livewire\Admin\Usuarios;
 use App\Livewire\Auth\Login;
 use App\Livewire\Portaria\Monitoramento;
 use App\Livewire\Portaria\Visitantes;
@@ -164,4 +165,30 @@ test('a tela de relatorios permite filtrar por dia da semana e assiduidade docen
         ->call('clearAssiduidadeFilters')
         ->assertSet('dayOfWeekFilter', 'todos')
         ->assertSet('driverSearch', '');
+});
+
+test('a tela de usuarios do sistema permite listar, cadastrar e ativar/desativar usuarios', function () {
+    $this->get('/admin/usuarios')
+        ->assertOk()
+        ->assertSee('Gestão de Usuários do Sistema')
+        ->assertSee('Novo Usuário');
+
+    Livewire::test(Usuarios::class)
+        ->assertSee('Carlos Eduardo Silva')
+        ->assertSee('ADM-001')
+        ->call('openCreateModal')
+        ->assertSet('showFormModal', true)
+        ->set('nome', 'Renato Augusto Guimarães')
+        ->set('cpf', '111.222.333-44')
+        ->set('email', 'renato.guimaraes@fatec.sp.gov.br')
+        ->set('perfil', 'operador')
+        ->set('codigo_operador', 'GDA-109')
+        ->set('senha', 'senha123')
+        ->set('senha_confirmation', 'senha123')
+        ->call('save')
+        ->assertSet('showFormModal', false)
+        ->assertSee('Renato Augusto Guimarães')
+        ->assertSee('GDA-109')
+        ->call('toggleStatus', 1)
+        ->assertSee('desativado');
 });
