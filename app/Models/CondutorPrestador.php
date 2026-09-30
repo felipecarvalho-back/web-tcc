@@ -18,6 +18,7 @@ class CondutorPrestador extends Model
 
     protected $fillable = [
         'condutor_id',
+        'codigo_acesso',
         'empresa',
         'inicio_contrato',
         'fim_contrato',

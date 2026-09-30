@@ -18,6 +18,7 @@ class Condutor extends Model
         'nome',
         'cpf',
         'tipo',
+        'validade_acesso',
         'ativo',
     ];
 

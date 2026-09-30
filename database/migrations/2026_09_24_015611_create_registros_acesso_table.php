@@ -18,9 +18,9 @@ return new class extends Migration
             $table->string('placa_registro', 10);
 
             // Dados da entrada
+            $table->string('cancela', 50)->default('Cancela 01 (Principal)');
             $table->timestamp('data_hora_entrada')->useCurrent();
             $table->foreignId('operador_id')->nullable()->constrained('usuarios')->nullOnDelete();
-            $table->unsignedTinyInteger('taxa_confianca')->nullable();
             $table->string('foto_entrada_path', 255)->nullable();
             $table->string('placa_corrigida', 10)->nullable();
 
@@ -31,6 +31,7 @@ return new class extends Migration
             $table->enum('status', [
                 'pendente',
                 'nao_cadastrado',
+                'autorizado',
                 'em_patio',
                 'finalizado',
                 'bloqueado',

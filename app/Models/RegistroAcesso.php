@@ -18,9 +18,9 @@ class RegistroAcesso extends Model
         'veiculo_id',
         'condutor_id',
         'placa_registro',
+        'cancela',
         'data_hora_entrada',
         'operador_id',
-        'taxa_confianca',
         'foto_entrada_path',
         'placa_corrigida',
         'data_hora_saida',
@@ -38,7 +38,6 @@ class RegistroAcesso extends Model
         return [
             'data_hora_entrada' => 'datetime',
             'data_hora_saida' => 'datetime',
-            'taxa_confianca' => 'integer',
         ];
     }
 
