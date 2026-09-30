@@ -241,41 +241,43 @@
                                 @endif
                             </td>
 
-                            <!-- OS TRÊS BOTÕES REQUISITADOS -->
+                            <!-- AÇÕES OPERACIONAIS CONFORME STATUS DA LEITURA -->
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
-                                    <!-- Botão 1: Corrigir Placa (Abre o Modal) -->
-                                    <button 
-                                        type="button" 
-                                        wire:click="openCorrectionModal({{ $record['id'] }})"
-                                        class="h-8 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
-                                        title="Corrigir leitura de placa do OCR"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">edit</span>
-                                        <span>Corrigir Placa</span>
-                                    </button>
+                                    @if ($record['status'] === 'autorizado')
+                                        <!-- Carro Identificado: Confirmar Condutor cadastrado via código de acesso -->
+                                        <button 
+                                            type="button" 
+                                            wire:click="openDriverConfirmationModal({{ $record['id'] }})"
+                                            class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                                            title="Confirmar se o motorista é o condutor cadastrado via código de acesso"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+                                            <span>Confirmar Condutor</span>
+                                        </button>
 
-                                    <!-- Botão 3: Permitir Entrada se o professor tem acesso -->
-                                    <button 
-                                        type="button" 
-                                        wire:click="openManualEntryModal({{ $record['id'] }})"
-                                        class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-xs cursor-pointer"
-                                        title="Permitir entrada manual digitando o código do professor"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">badge</span>
-                                        <span>Permitir Entrada (Prof)</span>
-                                    </button>
-
-                                    <!-- Botão 2: Marcar Saída -->
-                                    <button 
-                                        type="button" 
-                                        wire:click="markExit({{ $record['id'] }})"
-                                        class="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                                        title="Registrar saída do veículo"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">output</span>
-                                        <span>Marcar Saída</span>
-                                    </button>
+                                        <!-- Marcar Saída -->
+                                        <button 
+                                            type="button" 
+                                            wire:click="markExit({{ $record['id'] }})"
+                                            class="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                            title="Registrar saída do veículo"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">output</span>
+                                            <span>Marcar Saída</span>
+                                        </button>
+                                    @else
+                                        <!-- Placa NÃO Identificada / Com Erro / Não Cadastrada: Botão Único de Dupla Verificação -->
+                                        <button 
+                                            type="button" 
+                                            wire:click="openVerificationModal({{ $record['id'] }})"
+                                            class="h-8 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                                            title="Dupla verificação: corrigir leitura da placa ou validar código do motorista"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">fact_check</span>
+                                            <span>Verificar e Liberar</span>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -305,9 +307,9 @@
         </div>
     </div>
 
-    <!-- MODAL DE CORREÇÃO DE PLACA (COMPONENTE PARCIAL) -->
-    @include('livewire.portaria.partials.modal-correcao-placa')
+    <!-- MODAL DE DUPLA VERIFICAÇÃO (PLACA NÃO IDENTIFICADA OU NÃO CADASTRADA) -->
+    @include('livewire.portaria.partials.modal-verificacao-acesso')
 
-    <!-- MODAL DE LIBERAÇÃO MANUAL DE DOCENTE (COMPONENTE PARCIAL) -->
-    @include('livewire.portaria.partials.modal-liberacao-manual')
+    <!-- MODAL DE CONFIRMAÇÃO DE CONDUTOR (VEÍCULO IDENTIFICADO) -->
+    @include('livewire.portaria.partials.modal-confirmacao-condutor')
 </div>

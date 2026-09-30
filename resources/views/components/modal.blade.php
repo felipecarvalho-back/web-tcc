@@ -21,13 +21,11 @@ $maxWidthClass = match ($maxWidth) {
 <div 
     x-data="{
         closeModal() {
-            document.body.classList.remove('overflow-hidden');
             @if ($onClose)
                 $wire.{{ $onClose }}();
             @endif
         }
     }" 
-    x-init="document.body.classList.add('overflow-hidden'); $cleanup(() => document.body.classList.remove('overflow-hidden'))"
     @keydown.escape.window="closeModal()"
     @click="closeModal()"
     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain select-none md:select-auto"

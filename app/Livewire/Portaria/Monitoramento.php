@@ -18,62 +18,36 @@ class Monitoramento extends Component
 
     public string $filterStatus = 'todos';
 
-    public bool $showCorrectionModal = false;
+    // Estados dos Modais Operacionais
+    public bool $showVerificationModal = false;
 
-    public bool $showManualEntryModal = false;
+    public bool $showDriverConfirmationModal = false;
 
     public ?array $selectedRecord = null;
 
+    // Campos da Dupla Verificação (Placa não identificada / Não cadastrada)
     public string $correctedPlate = '';
 
-    public string $correctionJustification = 'Reflexo solar sobre o caractere da placa';
+    public string $driverAccessCode = '';
 
-    public string $correctionCategory = 'professor';
+    public string $justification = 'Correção manual de leitura OCR';
 
-    public string $professorAccessCode = '';
+    // Campos da Confirmação de Condutor (Veículo identificado)
+    public string $confirmDriverCode = '';
 
-    public string $manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
-
-    public ?array $identifiedProfessor = null;
-
-    public string $manualEntryError = '';
-
-    /**
-     * @var array<int, array<string, string>>
-     */
-    public array $authorizedProfessors = [
-        [
-            'code' => 'DOC-94281',
-            'name' => 'Prof. Dr. Marcos Souza',
-            'department' => 'DSM - Desenvolvimento de Software',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-88312',
-            'name' => 'Profa. Dra. Juliana Rezende',
-            'department' => 'GTI - Gestão de TI',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-74192',
-            'name' => 'Prof. Me. André Cavalcante',
-            'department' => 'Banco de Dados & IA',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-65201',
-            'name' => 'Prof. Dr. Ricardo Alencar',
-            'department' => 'Engenharia de Software',
-            'status' => 'Ativo',
-        ],
-    ];
-
+    // Notificações Toast
     public string $toastMessage = '';
 
     public string $toastType = 'success';
 
+    /**
+     * Registros de passagens de veículos na guarita.
+     *
+     * @var array<int, array<string, mixed>>
+     */
     public array $records = [];
 
+    // Indicadores do topo da tela
     public int $totalPassages = 412;
 
     public int $automaticPassages = 389;
@@ -82,6 +56,15 @@ class Monitoramento extends Component
 
     public function mount(): void
     {
+        // TODO [Backend]:
+        // Substituir esta lista inicial de demonstração por uma consulta Eloquent:
+        // Exemplo:
+        // $this->records = RegistroAcesso::with(['veiculo.condutor'])
+        //     ->whereDate('data_hora_entrada', today())
+        //     ->latest('data_hora_entrada')
+        //     ->take(20)
+        //     ->get()
+        //     ->toArray();
         $this->records = [
             [
                 'id' => 1084,
@@ -146,56 +129,152 @@ class Monitoramento extends Component
         ];
     }
 
-    public function openCorrectionModal(int $id): void
+    /**
+     * Abre o modal de dupla verificação para veículos com placa não identificada ou não cadastrada.
+     */
+    public function openVerificationModal(int $id): void
     {
         foreach ($this->records as $record) {
             if ($record['id'] === $id) {
                 $this->selectedRecord = $record;
                 $this->correctedPlate = $record['plate'];
-                $this->correctionCategory = $record['category'];
-                $this->correctionJustification = 'Correção manual de caractere ilegível no OCR';
-                $this->showCorrectionModal = true;
+                $this->driverAccessCode = '';
+                $this->justification = 'Correção manual de leitura OCR';
+                $this->showVerificationModal = true;
 
                 return;
             }
         }
     }
 
-    public function closeCorrectionModal(): void
+    /**
+     * Fecha o modal de dupla verificação.
+     */
+    public function closeVerificationModal(): void
     {
-        $this->showCorrectionModal = false;
+        $this->showVerificationModal = false;
         $this->selectedRecord = null;
-        $this->dispatch('modal-closed');
+        $this->correctedPlate = '';
+        $this->driverAccessCode = '';
     }
 
-    public function confirmCorrection(): void
+    /**
+     * Processa a validação da dupla verificação e libera a cancela.
+     */
+    public function confirmVerification(): void
     {
         if (! $this->selectedRecord) {
             return;
         }
 
-        $this->dispatch('modal-closed');
-
         $targetId = $this->selectedRecord['id'];
+
+        // TODO [Backend]:
+        // 1. Se $this->correctedPlate foi preenchida diferente do original:
+        //    Buscar se a nova placa existe no banco: Veiculo::where('placa', $this->correctedPlate)->first();
+        // 2. Se $this->driverAccessCode foi informado:
+        //    Buscar o condutor (Professor/Funcionário) que possui esse código de acesso.
+        // 3. Criar ou atualizar o registro de acesso (RegistroAcesso):
+        //    - tipo_liberacao: 'manual_porteiro'
+        //    - motivo: $this->justification
+        //    - usuario_id: auth()->id() (porteiro logado)
+        // 4. Enviar pulso de acionamento para a cancela eletrônica via API/Hardware.
 
         foreach ($this->records as &$record) {
             if ($record['id'] === $targetId) {
-                $record['plate'] = strtoupper(trim($this->correctedPlate));
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Autorizado (Corrigido)';
-                $record['driver_name'] = 'Prof. Dr. Marcos Souza (Validado)';
-                $record['confidence'] = 100;
+                if (! empty(trim($this->driverAccessCode))) {
+                    $code = strtoupper(trim($this->driverAccessCode));
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Liberado por Código';
+                    $record['driver_name'] = "Condutor Validado ({$code})";
+                } elseif (! empty(trim($this->correctedPlate))) {
+                    $record['plate'] = strtoupper(trim($this->correctedPlate));
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Autorizado (Placa Corrigida)';
+                    $record['confidence'] = 100;
+                    $this->manualCorrections++;
+                } else {
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Liberado Manualmente';
+                }
                 break;
             }
         }
 
-        $this->manualCorrections++;
-        $this->showCorrectionModal = false;
-        $this->triggerToast("Placa #{$targetId} corrigida para {$this->correctedPlate}. Cancela liberada!", 'success');
+        $this->totalPassages++;
+        $this->showVerificationModal = false;
+        $this->selectedRecord = null;
+        $this->triggerToast('Acesso validado e cancela liberada com sucesso!', 'success');
     }
 
+    /**
+     * Abre o modal de confirmação de condutor para veículos que já foram identificados pelo sistema.
+     */
+    public function openDriverConfirmationModal(int $id): void
+    {
+        foreach ($this->records as $record) {
+            if ($record['id'] === $id) {
+                $this->selectedRecord = $record;
+                $this->confirmDriverCode = '';
+                $this->showDriverConfirmationModal = true;
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Fecha o modal de confirmação de condutor.
+     */
+    public function closeDriverConfirmationModal(): void
+    {
+        $this->showDriverConfirmationModal = false;
+        $this->selectedRecord = null;
+        $this->confirmDriverCode = '';
+    }
+
+    /**
+     * Confirma se o motorista na guarita é de fato o condutor registrado no veículo.
+     */
+    public function confirmDriver(): void
+    {
+        if (! $this->selectedRecord) {
+            return;
+        }
+
+        $targetId = $this->selectedRecord['id'];
+
+        // TODO [Backend]:
+        // 1. Validar se $this->confirmDriverCode confere com o condutor associado ao veículo no banco:
+        //    $veiculo = Veiculo::with('condutor')->where('placa', $this->selectedRecord['plate'])->first();
+        //    Verificar se o código de acesso pertence ao condutor retornado.
+        // 2. Se condutor divergente:
+        //    Registrar alerta/evento de condutor divergente para auditoria.
+        // 3. Se validado com sucesso:
+        //    Registrar entrada em RegistroAcesso e acionar a cancela.
+
+        foreach ($this->records as &$record) {
+            if ($record['id'] === $targetId) {
+                $record['status_label'] = 'Condutor Confirmado';
+                break;
+            }
+        }
+
+        $this->showDriverConfirmationModal = false;
+        $this->selectedRecord = null;
+        $this->triggerToast('Identidade do condutor confirmada! Cancela liberada.', 'success');
+    }
+
+    /**
+     * Registra a saída de um veículo no sistema.
+     */
     public function markExit(int $id): void
     {
+        // TODO [Backend]:
+        // 1. Atualizar o registro correspondente em RegistroAcesso:
+        //    data_hora_saida = now()
+        // 2. Enviar comando de liberação para a cancela de saída.
+
         foreach ($this->records as &$record) {
             if ($record['id'] === $id) {
                 $record['status'] = 'saida';
@@ -206,132 +285,9 @@ class Monitoramento extends Component
         }
     }
 
-    public function openManualEntryModal(int $id): void
-    {
-        foreach ($this->records as $record) {
-            if ($record['id'] === $id) {
-                $this->selectedRecord = $record;
-                $this->showManualEntryModal = true;
-                $this->professorAccessCode = '';
-                $this->identifiedProfessor = null;
-                $this->manualEntryError = '';
-                $this->manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
-
-                return;
-            }
-        }
-    }
-
-    public function closeManualEntryModal(): void
-    {
-        $this->showManualEntryModal = false;
-        $this->selectedRecord = null;
-        $this->professorAccessCode = '';
-        $this->identifiedProfessor = null;
-        $this->manualEntryError = '';
-        $this->dispatch('modal-closed');
-    }
-
-    public function updatedProfessorAccessCode(string $value): void
-    {
-        $this->validateAndFindProfessor($value);
-    }
-
-    public function selectProfessorCode(string $code): void
-    {
-        $this->professorAccessCode = $code;
-        $this->validateAndFindProfessor($code);
-    }
-
     /**
-     * @return array<string, string>|null
+     * Simula a chegada e captura de um novo veículo pela câmera OCR.
      */
-    private function validateAndFindProfessor(string $code): ?array
-    {
-        $cleanCode = strtoupper(trim($code));
-        $this->manualEntryError = '';
-
-        if ($cleanCode === '') {
-            $this->identifiedProfessor = null;
-
-            return null;
-        }
-
-        foreach ($this->authorizedProfessors as $prof) {
-            if (
-                strtoupper($prof['code']) === $cleanCode ||
-                str_replace('DOC-', '', strtoupper($prof['code'])) === str_replace('DOC-', '', $cleanCode)
-            ) {
-                $this->identifiedProfessor = $prof;
-
-                return $prof;
-            }
-        }
-
-        $this->identifiedProfessor = null;
-        $this->manualEntryError = 'Código não encontrado. Verifique a matrícula funcional do professor.';
-
-        return null;
-    }
-
-    public function confirmManualEntry(): void
-    {
-        if (! $this->selectedRecord) {
-            return;
-        }
-
-        $prof = $this->validateAndFindProfessor($this->professorAccessCode);
-
-        if (! $prof) {
-            $this->manualEntryError = 'Informe um código de acesso válido de um professor cadastrado.';
-
-            return;
-        }
-
-        $this->dispatch('modal-closed');
-
-        $targetId = $this->selectedRecord['id'];
-
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $targetId) {
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Liberado Manualmente';
-                $record['driver_name'] = "{$prof['name']} (Docente c/ Carro Terceiro)";
-                $record['category'] = 'professor';
-                $record['category_label'] = "Docente • {$prof['department']}";
-                break;
-            }
-        }
-
-        $this->totalPassages++;
-        $this->showManualEntryModal = false;
-        $this->triggerToast("Acesso autorizado para {$prof['name']} (Código: {$prof['code']})! Cancela #01 liberada.", 'success');
-    }
-
-    public function allowManualEntry(int $id, ?string $code = null): void
-    {
-        if ($code !== null) {
-            $this->openManualEntryModal($id);
-            $this->professorAccessCode = $code;
-            $this->confirmManualEntry();
-
-            return;
-        }
-
-        // Suporte a chamada direta
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $id) {
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Liberado Manualmente';
-                $record['driver_name'] = 'Prof. Dr. Marcos Souza (Acesso Excepcional)';
-                $record['category'] = 'professor';
-                $this->totalPassages++;
-                $this->triggerToast('Entrada permitida para docente c/ acesso! Cancela #01 aberta.', 'success');
-                break;
-            }
-        }
-    }
-
     public function simulateNewCapture(): void
     {
         $newId = count($this->records) + 1085;

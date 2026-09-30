@@ -19,40 +19,50 @@ test('a tela de login carrega e redireciona para a portaria por codigo', functio
         ->assertRedirect(route('portaria.monitoramento'));
 });
 
-test('a tela inicial de monitoramento da portaria renderiza os registros e os 3 botoes operacionais', function () {
+test('a tela inicial de monitoramento da portaria renderiza os registros e os botoes operacionais da guarita', function () {
     $this->get('/portaria')
         ->assertOk()
         ->assertSee('Controle de Passagem de Veículos')
-        ->assertSee('Corrigir Placa')
-        ->assertSee('Marcar Saída')
-        ->assertSee('Permitir Entrada (Prof)');
+        ->assertSee('Verificar e Liberar')
+        ->assertSee('Confirmar Condutor')
+        ->assertSee('Marcar Saída');
 
     Livewire::test(Monitoramento::class)
         ->assertSee('BRA-2819')
-        ->call('openCorrectionModal', 1084)
-        ->assertSet('showCorrectionModal', true)
+        ->call('openVerificationModal', 1084)
+        ->assertSet('showVerificationModal', true)
         ->set('correctedPlate', 'BRA-2E19')
-        ->call('confirmCorrection')
-        ->assertSet('showCorrectionModal', false)
-        ->assertSee('BRA-2E19');
+        ->call('confirmVerification')
+        ->assertSet('showVerificationModal', false)
+        ->assertSee('BRA-2E19')
+        ->assertSee('Autorizado (Placa Corrigida)');
 });
 
-test('o botao de permitir entrada de professor sem cadastro libera o acesso por excecao', function () {
+test('o modal de dupla verificacao permite autorizar acesso por codigo de acesso do condutor', function () {
     Livewire::test(Monitoramento::class)
-        ->call('allowManualEntry', 1082)
-        ->assertSee('Liberado Manualmente');
+        ->call('openVerificationModal', 1082)
+        ->assertSet('showVerificationModal', true)
+        ->set('driverAccessCode', 'DOC-94281')
+        ->call('confirmVerification')
+        ->assertSet('showVerificationModal', false)
+        ->assertSee('Liberado por Código')
+        ->assertSee('DOC-94281');
 });
 
-test('o modal de liberacao manual permite autorizar professor por codigo de acesso', function () {
+test('o modal de confirmacao de condutor valida o motorista no veiculo identificado', function () {
     Livewire::test(Monitoramento::class)
-        ->call('openManualEntryModal', 1082)
-        ->assertSet('showManualEntryModal', true)
-        ->set('professorAccessCode', 'DOC-94281')
-        ->assertSet('identifiedProfessor.name', 'Prof. Dr. Marcos Souza')
-        ->call('confirmManualEntry')
-        ->assertSet('showManualEntryModal', false)
-        ->assertSee('Liberado Manualmente')
-        ->assertSee('Prof. Dr. Marcos Souza');
+        ->call('openDriverConfirmationModal', 1083)
+        ->assertSet('showDriverConfirmationModal', true)
+        ->set('confirmDriverCode', 'DOC-88312')
+        ->call('confirmDriver')
+        ->assertSet('showDriverConfirmationModal', false)
+        ->assertSee('Condutor Confirmado');
+});
+
+test('o operador pode marcar a saida de um veiculo', function () {
+    Livewire::test(Monitoramento::class)
+        ->call('markExit', 1083)
+        ->assertSee('Saída Registrada');
 });
 
 test('a tela de cadastro rapido de visitantes registra novo visitante e valida campos', function () {
