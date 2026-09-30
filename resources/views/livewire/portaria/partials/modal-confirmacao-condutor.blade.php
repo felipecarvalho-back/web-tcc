@@ -56,6 +56,9 @@
             </span>
         </div>
 
+        <!-- Seção de Caronas / Múltiplos Ocupantes (Opcional - Até 4 caronas) -->
+        @include('livewire.portaria.partials.secao-caronas')
+
         <x-slot:footer>
             <button 
                 type="button" 

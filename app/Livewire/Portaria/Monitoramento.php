@@ -35,6 +35,15 @@ class Monitoramento extends Component
     // Campos da Confirmação de Condutor (Veículo identificado)
     public string $confirmDriverCode = '';
 
+    /**
+     * Lista de códigos funcionais de caronas/passageiros (máx. 4 passageiros adicionais).
+     *
+     * @var array<int, string>
+     */
+    public array $passengers = [];
+
+    public string $newPassengerCode = '';
+
     // Notificações Toast
     public string $toastMessage = '';
 
@@ -130,6 +139,43 @@ class Monitoramento extends Component
     }
 
     /**
+     * Adiciona um código de carona/passageiro à lista de ocupantes (limite de até 4 caronas).
+     */
+    public function addPassenger(): void
+    {
+        $code = strtoupper(trim($this->newPassengerCode));
+        if ($code === '') {
+            return;
+        }
+
+        if (count($this->passengers) >= 4) {
+            $this->triggerToast('Capacidade máxima de 4 caronas atingida para este veículo.', 'warning');
+
+            return;
+        }
+
+        if (in_array($code, $this->passengers, true)) {
+            $this->triggerToast('Este código de carona já foi adicionado.', 'warning');
+
+            return;
+        }
+
+        $this->passengers[] = $code;
+        $this->newPassengerCode = '';
+    }
+
+    /**
+     * Remove um carona/passageiro da lista de ocupantes.
+     */
+    public function removePassenger(int $index): void
+    {
+        if (isset($this->passengers[$index])) {
+            unset($this->passengers[$index]);
+            $this->passengers = array_values($this->passengers);
+        }
+    }
+
+    /**
      * Abre o modal de dupla verificação para veículos com placa não identificada ou não cadastrada.
      */
     public function openVerificationModal(int $id): void
@@ -140,6 +186,8 @@ class Monitoramento extends Component
                 $this->correctedPlate = $record['plate'];
                 $this->driverAccessCode = '';
                 $this->justification = 'Correção manual de leitura OCR';
+                $this->passengers = [];
+                $this->newPassengerCode = '';
                 $this->showVerificationModal = true;
 
                 return;
@@ -156,6 +204,8 @@ class Monitoramento extends Component
         $this->selectedRecord = null;
         $this->correctedPlate = '';
         $this->driverAccessCode = '';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
     }
 
     /**
@@ -174,11 +224,17 @@ class Monitoramento extends Component
         //    Buscar se a nova placa existe no banco: Veiculo::where('placa', $this->correctedPlate)->first();
         // 2. Se $this->driverAccessCode foi informado:
         //    Buscar o condutor (Professor/Funcionário) que possui esse código de acesso.
-        // 3. Criar ou atualizar o registro de acesso (RegistroAcesso):
+        // 3. Criar ou atualizar o registro de acesso do CONDUTOR em RegistroAcesso:
+        //    - tipo_ocupante: 'condutor'
         //    - tipo_liberacao: 'manual_porteiro'
         //    - motivo: $this->justification
         //    - usuario_id: auth()->id() (porteiro logado)
-        // 4. Enviar pulso de acionamento para a cancela eletrônica via API/Hardware.
+        // 4. Se houver caronas ($this->passengers):
+        //    Para cada código em $this->passengers:
+        //    - Buscar o Condutor pelo codigo_acesso.
+        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
+        //      e passagem_origem_id apontando para o registro do condutor.
+        // 5. Enviar pulso de acionamento para a cancela eletrônica via API/Hardware.
 
         foreach ($this->records as &$record) {
             if ($record['id'] === $targetId) {
@@ -201,10 +257,15 @@ class Monitoramento extends Component
             }
         }
 
-        $this->totalPassages++;
+        $passengerCount = count($this->passengers);
+        $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
+
+        $this->totalPassages += (1 + $passengerCount);
         $this->showVerificationModal = false;
         $this->selectedRecord = null;
-        $this->triggerToast('Acesso validado e cancela liberada com sucesso!', 'success');
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->triggerToast("Acesso validado e cancela liberada{$passengerNote}!", 'success');
     }
 
     /**
@@ -216,6 +277,8 @@ class Monitoramento extends Component
             if ($record['id'] === $id) {
                 $this->selectedRecord = $record;
                 $this->confirmDriverCode = '';
+                $this->passengers = [];
+                $this->newPassengerCode = '';
                 $this->showDriverConfirmationModal = true;
 
                 return;
@@ -231,6 +294,8 @@ class Monitoramento extends Component
         $this->showDriverConfirmationModal = false;
         $this->selectedRecord = null;
         $this->confirmDriverCode = '';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
     }
 
     /**
@@ -250,8 +315,13 @@ class Monitoramento extends Component
         //    Verificar se o código de acesso pertence ao condutor retornado.
         // 2. Se condutor divergente:
         //    Registrar alerta/evento de condutor divergente para auditoria.
-        // 3. Se validado com sucesso:
-        //    Registrar entrada em RegistroAcesso e acionar a cancela.
+        // 3. Registrar entrada do condutor principal em RegistroAcesso (tipo_ocupante = 'condutor').
+        // 4. Se houver caronas ($this->passengers):
+        //    Para cada código em $this->passengers:
+        //    - Buscar o Condutor pelo codigo_acesso.
+        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
+        //      e passagem_origem_id vinculando à mesma passagem do veículo.
+        // 5. Acionar a abertura da cancela via hardware/API.
 
         foreach ($this->records as &$record) {
             if ($record['id'] === $targetId) {
@@ -260,9 +330,15 @@ class Monitoramento extends Component
             }
         }
 
+        $passengerCount = count($this->passengers);
+        $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
+
+        $this->totalPassages += $passengerCount;
         $this->showDriverConfirmationModal = false;
         $this->selectedRecord = null;
-        $this->triggerToast('Identidade do condutor confirmada! Cancela liberada.', 'success');
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->triggerToast("Identidade do condutor confirmada{$passengerNote}! Cancela liberada.", 'success');
     }
 
     /**

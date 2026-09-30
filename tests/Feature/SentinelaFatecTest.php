@@ -65,6 +65,26 @@ test('o operador pode marcar a saida de um veiculo', function () {
         ->assertSee('Saída Registrada');
 });
 
+test('o porteiro pode registrar caronas e multiplos docentes no mesmo veiculo', function () {
+    Livewire::test(Monitoramento::class)
+        ->call('openDriverConfirmationModal', 1083)
+        ->assertSet('showDriverConfirmationModal', true)
+        ->set('confirmDriverCode', 'DOC-88312')
+        ->set('newPassengerCode', 'DOC-94281')
+        ->call('addPassenger')
+        ->assertCount('passengers', 1)
+        ->assertSee('DOC-94281')
+        ->set('newPassengerCode', 'DOC-74192')
+        ->call('addPassenger')
+        ->assertCount('passengers', 2)
+        ->assertSee('DOC-74192')
+        ->call('removePassenger', 0)
+        ->assertCount('passengers', 1)
+        ->call('confirmDriver')
+        ->assertSet('showDriverConfirmationModal', false)
+        ->assertSee('carona(s) registrada(s)');
+});
+
 test('a tela de cadastro rapido de visitantes registra novo visitante e valida campos', function () {
     $this->get('/portaria/visitantes')
         ->assertOk()
