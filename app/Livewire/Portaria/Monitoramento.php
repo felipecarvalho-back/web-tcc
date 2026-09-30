@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Portaria;
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -18,62 +19,45 @@ class Monitoramento extends Component
 
     public string $filterStatus = 'todos';
 
-    public bool $showCorrectionModal = false;
+    // Estados dos Modais Operacionais
+    public bool $showVerificationModal = false;
 
-    public bool $showManualEntryModal = false;
+    public bool $showDriverConfirmationModal = false;
 
     public ?array $selectedRecord = null;
 
+    // Campos da Dupla Verificação (Placa não identificada / Não cadastrada)
     public string $correctedPlate = '';
 
-    public string $correctionJustification = 'Reflexo solar sobre o caractere da placa';
+    public string $driverAccessCode = '';
 
-    public string $correctionCategory = 'professor';
+    public string $justification = 'Correção manual de leitura OCR';
 
-    public string $professorAccessCode = '';
-
-    public string $manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
-
-    public ?array $identifiedProfessor = null;
-
-    public string $manualEntryError = '';
+    // Campos da Confirmação de Condutor (Veículo identificado)
+    public string $confirmDriverCode = '';
 
     /**
-     * @var array<int, array<string, string>>
+     * Lista de códigos funcionais de caronas/passageiros (máx. 4 passageiros adicionais).
+     *
+     * @var array<int, string>
      */
-    public array $authorizedProfessors = [
-        [
-            'code' => 'DOC-94281',
-            'name' => 'Prof. Dr. Marcos Souza',
-            'department' => 'DSM - Desenvolvimento de Software',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-88312',
-            'name' => 'Profa. Dra. Juliana Rezende',
-            'department' => 'GTI - Gestão de TI',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-74192',
-            'name' => 'Prof. Me. André Cavalcante',
-            'department' => 'Banco de Dados & IA',
-            'status' => 'Ativo',
-        ],
-        [
-            'code' => 'DOC-65201',
-            'name' => 'Prof. Dr. Ricardo Alencar',
-            'department' => 'Engenharia de Software',
-            'status' => 'Ativo',
-        ],
-    ];
+    public array $passengers = [];
 
+    public string $newPassengerCode = '';
+
+    // Notificações Toast
     public string $toastMessage = '';
 
     public string $toastType = 'success';
 
+    /**
+     * Registros de passagens de veículos na guarita.
+     *
+     * @var array<int, array<string, mixed>>
+     */
     public array $records = [];
 
+    // Indicadores do topo da tela
     public int $totalPassages = 412;
 
     public int $automaticPassages = 389;
@@ -82,6 +66,15 @@ class Monitoramento extends Component
 
     public function mount(): void
     {
+        // TODO [Backend]:
+        // Substituir esta lista inicial de demonstração por uma consulta Eloquent:
+        // Exemplo:
+        // $this->records = RegistroAcesso::with(['veiculo.condutor'])
+        //     ->whereDate('data_hora_entrada', today())
+        //     ->latest('data_hora_entrada')
+        //     ->take(20)
+        //     ->get()
+        //     ->toArray();
         $this->records = [
             [
                 'id' => 1084,
@@ -146,56 +139,219 @@ class Monitoramento extends Component
         ];
     }
 
-    public function openCorrectionModal(int $id): void
+    /**
+     * Adiciona um código de carona/passageiro à lista de ocupantes (limite de até 4 caronas).
+     */
+    public function addPassenger(): void
+    {
+        $code = strtoupper(trim($this->newPassengerCode));
+        if ($code === '') {
+            return;
+        }
+
+        if (count($this->passengers) >= 4) {
+            $this->triggerToast('Capacidade máxima de 4 caronas atingida para este veículo.', 'warning');
+
+            return;
+        }
+
+        if (in_array($code, $this->passengers, true)) {
+            $this->triggerToast('Este código de carona já foi adicionado.', 'warning');
+
+            return;
+        }
+
+        $this->passengers[] = $code;
+        $this->newPassengerCode = '';
+    }
+
+    /**
+     * Remove um carona/passageiro da lista de ocupantes.
+     */
+    public function removePassenger(int $index): void
+    {
+        if (isset($this->passengers[$index])) {
+            unset($this->passengers[$index]);
+            $this->passengers = array_values($this->passengers);
+        }
+    }
+
+    /**
+     * Abre o modal de dupla verificação para veículos com placa não identificada ou não cadastrada.
+     */
+    public function openVerificationModal(int $id): void
     {
         foreach ($this->records as $record) {
             if ($record['id'] === $id) {
                 $this->selectedRecord = $record;
                 $this->correctedPlate = $record['plate'];
-                $this->correctionCategory = $record['category'];
-                $this->correctionJustification = 'Correção manual de caractere ilegível no OCR';
-                $this->showCorrectionModal = true;
+                $this->driverAccessCode = '';
+                $this->justification = 'Correção manual de leitura OCR';
+                $this->passengers = [];
+                $this->newPassengerCode = '';
+                $this->showVerificationModal = true;
 
                 return;
             }
         }
     }
 
-    public function closeCorrectionModal(): void
+    /**
+     * Fecha o modal de dupla verificação.
+     */
+    public function closeVerificationModal(): void
     {
-        $this->showCorrectionModal = false;
+        $this->showVerificationModal = false;
         $this->selectedRecord = null;
-        $this->dispatch('modal-closed');
+        $this->correctedPlate = '';
+        $this->driverAccessCode = '';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
     }
 
-    public function confirmCorrection(): void
+    /**
+     * Processa a validação da dupla verificação e libera a cancela.
+     */
+    public function confirmVerification(): void
     {
         if (! $this->selectedRecord) {
             return;
         }
 
-        $this->dispatch('modal-closed');
-
         $targetId = $this->selectedRecord['id'];
+
+        // TODO [Backend]:
+        // 1. Se $this->correctedPlate foi preenchida diferente do original:
+        //    Buscar se a nova placa existe no banco: Veiculo::where('placa', $this->correctedPlate)->first();
+        // 2. Se $this->driverAccessCode foi informado:
+        //    Buscar o condutor (Professor/Funcionário) que possui esse código de acesso.
+        // 3. Criar ou atualizar o registro de acesso do CONDUTOR em RegistroAcesso:
+        //    - tipo_ocupante: 'condutor'
+        //    - tipo_liberacao: 'manual_porteiro'
+        //    - motivo: $this->justification
+        //    - usuario_id: auth()->id() (porteiro logado)
+        // 4. Se houver caronas ($this->passengers):
+        //    Para cada código em $this->passengers:
+        //    - Buscar o Condutor pelo codigo_acesso.
+        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
+        //      e passagem_origem_id apontando para o registro do condutor.
+        // 5. Enviar pulso de acionamento para a cancela eletrônica via API/Hardware.
 
         foreach ($this->records as &$record) {
             if ($record['id'] === $targetId) {
-                $record['plate'] = strtoupper(trim($this->correctedPlate));
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Autorizado (Corrigido)';
-                $record['driver_name'] = 'Prof. Dr. Marcos Souza (Validado)';
-                $record['confidence'] = 100;
+                if (! empty(trim($this->driverAccessCode))) {
+                    $code = strtoupper(trim($this->driverAccessCode));
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Liberado por Código';
+                    $record['driver_name'] = "Condutor Validado ({$code})";
+                } elseif (! empty(trim($this->correctedPlate))) {
+                    $record['plate'] = strtoupper(trim($this->correctedPlate));
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Autorizado (Placa Corrigida)';
+                    $record['confidence'] = 100;
+                    $this->manualCorrections++;
+                } else {
+                    $record['status'] = 'autorizado';
+                    $record['status_label'] = 'Liberado Manualmente';
+                }
                 break;
             }
         }
 
-        $this->manualCorrections++;
-        $this->showCorrectionModal = false;
-        $this->triggerToast("Placa #{$targetId} corrigida para {$this->correctedPlate}. Cancela liberada!", 'success');
+        $passengerCount = count($this->passengers);
+        $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
+
+        $this->totalPassages += (1 + $passengerCount);
+        $this->showVerificationModal = false;
+        $this->selectedRecord = null;
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->triggerToast("Acesso validado e cancela liberada{$passengerNote}!", 'success');
     }
 
+    /**
+     * Abre o modal de confirmação de condutor para veículos que já foram identificados pelo sistema.
+     */
+    public function openDriverConfirmationModal(int $id): void
+    {
+        foreach ($this->records as $record) {
+            if ($record['id'] === $id) {
+                $this->selectedRecord = $record;
+                $this->confirmDriverCode = '';
+                $this->passengers = [];
+                $this->newPassengerCode = '';
+                $this->showDriverConfirmationModal = true;
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Fecha o modal de confirmação de condutor.
+     */
+    public function closeDriverConfirmationModal(): void
+    {
+        $this->showDriverConfirmationModal = false;
+        $this->selectedRecord = null;
+        $this->confirmDriverCode = '';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+    }
+
+    /**
+     * Confirma se o motorista na guarita é de fato o condutor registrado no veículo.
+     */
+    public function confirmDriver(): void
+    {
+        if (! $this->selectedRecord) {
+            return;
+        }
+
+        $targetId = $this->selectedRecord['id'];
+
+        // TODO [Backend]:
+        // 1. Validar se $this->confirmDriverCode confere com o condutor associado ao veículo no banco:
+        //    $veiculo = Veiculo::with('condutor')->where('placa', $this->selectedRecord['plate'])->first();
+        //    Verificar se o código de acesso pertence ao condutor retornado.
+        // 2. Se condutor divergente:
+        //    Registrar alerta/evento de condutor divergente para auditoria.
+        // 3. Registrar entrada do condutor principal em RegistroAcesso (tipo_ocupante = 'condutor').
+        // 4. Se houver caronas ($this->passengers):
+        //    Para cada código em $this->passengers:
+        //    - Buscar o Condutor pelo codigo_acesso.
+        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
+        //      e passagem_origem_id vinculando à mesma passagem do veículo.
+        // 5. Acionar a abertura da cancela via hardware/API.
+
+        foreach ($this->records as &$record) {
+            if ($record['id'] === $targetId) {
+                $record['status_label'] = 'Condutor Confirmado';
+                break;
+            }
+        }
+
+        $passengerCount = count($this->passengers);
+        $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
+
+        $this->totalPassages += $passengerCount;
+        $this->showDriverConfirmationModal = false;
+        $this->selectedRecord = null;
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->triggerToast("Identidade do condutor confirmada{$passengerNote}! Cancela liberada.", 'success');
+    }
+
+    /**
+     * Registra a saída de um veículo no sistema.
+     */
     public function markExit(int $id): void
     {
+        // TODO [Backend]:
+        // 1. Atualizar o registro correspondente em RegistroAcesso:
+        //    data_hora_saida = now()
+        // 2. Enviar comando de liberação para a cancela de saída.
+
         foreach ($this->records as &$record) {
             if ($record['id'] === $id) {
                 $record['status'] = 'saida';
@@ -206,132 +362,9 @@ class Monitoramento extends Component
         }
     }
 
-    public function openManualEntryModal(int $id): void
-    {
-        foreach ($this->records as $record) {
-            if ($record['id'] === $id) {
-                $this->selectedRecord = $record;
-                $this->showManualEntryModal = true;
-                $this->professorAccessCode = '';
-                $this->identifiedProfessor = null;
-                $this->manualEntryError = '';
-                $this->manualEntryJustification = 'Veículo de terceiro / Carro emprestado de amigo ou parente';
-
-                return;
-            }
-        }
-    }
-
-    public function closeManualEntryModal(): void
-    {
-        $this->showManualEntryModal = false;
-        $this->selectedRecord = null;
-        $this->professorAccessCode = '';
-        $this->identifiedProfessor = null;
-        $this->manualEntryError = '';
-        $this->dispatch('modal-closed');
-    }
-
-    public function updatedProfessorAccessCode(string $value): void
-    {
-        $this->validateAndFindProfessor($value);
-    }
-
-    public function selectProfessorCode(string $code): void
-    {
-        $this->professorAccessCode = $code;
-        $this->validateAndFindProfessor($code);
-    }
-
     /**
-     * @return array<string, string>|null
+     * Simula a chegada e captura de um novo veículo pela câmera OCR.
      */
-    private function validateAndFindProfessor(string $code): ?array
-    {
-        $cleanCode = strtoupper(trim($code));
-        $this->manualEntryError = '';
-
-        if ($cleanCode === '') {
-            $this->identifiedProfessor = null;
-
-            return null;
-        }
-
-        foreach ($this->authorizedProfessors as $prof) {
-            if (
-                strtoupper($prof['code']) === $cleanCode ||
-                str_replace('DOC-', '', strtoupper($prof['code'])) === str_replace('DOC-', '', $cleanCode)
-            ) {
-                $this->identifiedProfessor = $prof;
-
-                return $prof;
-            }
-        }
-
-        $this->identifiedProfessor = null;
-        $this->manualEntryError = 'Código não encontrado. Verifique a matrícula funcional do professor.';
-
-        return null;
-    }
-
-    public function confirmManualEntry(): void
-    {
-        if (! $this->selectedRecord) {
-            return;
-        }
-
-        $prof = $this->validateAndFindProfessor($this->professorAccessCode);
-
-        if (! $prof) {
-            $this->manualEntryError = 'Informe um código de acesso válido de um professor cadastrado.';
-
-            return;
-        }
-
-        $this->dispatch('modal-closed');
-
-        $targetId = $this->selectedRecord['id'];
-
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $targetId) {
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Liberado Manualmente';
-                $record['driver_name'] = "{$prof['name']} (Docente c/ Carro Terceiro)";
-                $record['category'] = 'professor';
-                $record['category_label'] = "Docente • {$prof['department']}";
-                break;
-            }
-        }
-
-        $this->totalPassages++;
-        $this->showManualEntryModal = false;
-        $this->triggerToast("Acesso autorizado para {$prof['name']} (Código: {$prof['code']})! Cancela #01 liberada.", 'success');
-    }
-
-    public function allowManualEntry(int $id, ?string $code = null): void
-    {
-        if ($code !== null) {
-            $this->openManualEntryModal($id);
-            $this->professorAccessCode = $code;
-            $this->confirmManualEntry();
-
-            return;
-        }
-
-        // Suporte a chamada direta
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $id) {
-                $record['status'] = 'autorizado';
-                $record['status_label'] = 'Liberado Manualmente';
-                $record['driver_name'] = 'Prof. Dr. Marcos Souza (Acesso Excepcional)';
-                $record['category'] = 'professor';
-                $this->totalPassages++;
-                $this->triggerToast('Entrada permitida para docente c/ acesso! Cancela #01 aberta.', 'success');
-                break;
-            }
-        }
-    }
-
     public function simulateNewCapture(): void
     {
         $newId = count($this->records) + 1085;
@@ -368,7 +401,8 @@ class Monitoramento extends Component
         $this->toastMessage = '';
     }
 
-    public function getFilteredRecordsProperty(): array
+    #[Computed]
+    public function filteredRecords(): array
     {
         return array_filter($this->records, function ($record) {
             if ($this->filterPlate && stripos($record['plate'], trim($this->filterPlate)) === false) {

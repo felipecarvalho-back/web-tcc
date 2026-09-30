@@ -31,14 +31,63 @@
         </div>
     </div>
 
-    <!-- PAINEL DE FILTROS SIMPLES -->
+    <!-- PAINEL DE FILTROS AVANÇADOS COM ASSIDUIDADE -->
     <div class="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col gap-4 no-print">
-        <div class="flex items-center gap-2 pb-3 border-b border-surface-container">
-            <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
-            <h2 class="text-xs font-bold text-on-surface uppercase tracking-wider">Filtros de Tráfego e Ocorrências</h2>
+        <div class="flex items-center justify-between pb-3 border-b border-surface-container flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
+                <h2 class="text-xs font-bold text-on-surface uppercase tracking-wider">Filtros de Tráfego e Assiduidade Docente</h2>
+            </div>
+            @if ($dayOfWeekFilter !== 'todos' || !empty(trim($driverSearch)))
+                <button 
+                    type="button" 
+                    wire:click="clearAssiduidadeFilters"
+                    class="text-xs text-primary hover:text-primary-hover font-bold flex items-center gap-1 cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                    <span>Limpar Filtros</span>
+                </button>
+            @endif
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            <!-- Buscar Professor / Condutor / Placa -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold text-on-surface-variant uppercase flex items-center gap-1">
+                    <span class="material-symbols-outlined text-primary text-[14px]">person_search</span>
+                    <span>Professor / Condutor</span>
+                </label>
+                <div class="relative flex items-center">
+                    <span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-[17px] pointer-events-none">search</span>
+                    <input 
+                        wire:model.live.debounce.300ms="driverSearch" 
+                        type="text" 
+                        placeholder="Ex: Marcos, Juliana ou Placa..."
+                        class="h-10 pl-8 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary w-full"
+                    />
+                </div>
+            </div>
+
+            <!-- Filtro por Dia da Semana (Segundas-feiras, etc.) -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold text-on-surface-variant uppercase flex items-center gap-1">
+                    <span class="material-symbols-outlined text-primary text-[14px]">event_repeat</span>
+                    <span>Dia da Semana</span>
+                </label>
+                <select 
+                    wire:model.live="dayOfWeekFilter" 
+                    class="h-10 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+                >
+                    <option value="todos">Todos os Dias</option>
+                    <option value="segunda">Segunda-feira</option>
+                    <option value="terca">Terça-feira</option>
+                    <option value="quarta">Quarta-feira</option>
+                    <option value="quinta">Quinta-feira</option>
+                    <option value="sexta">Sexta-feira</option>
+                    <option value="sabado">Sábado</option>
+                </select>
+            </div>
+
             <!-- Data Inicial -->
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold text-on-surface-variant uppercase">Data Início</label>
@@ -68,8 +117,8 @@
                 >
                     <option value="todos">Todas as Categorias</option>
                     <option value="professor">Professores (Docentes)</option>
-                    <option value="funcionario">Funcionários Administrativos</option>
-                    <option value="prestador">Prestadores de Serviço</option>
+                    <option value="funcionario">Funcionários</option>
+                    <option value="prestador">Prestadores</option>
                     <option value="visitante">Visitantes</option>
                 </select>
             </div>
@@ -86,21 +135,29 @@
                     <option value="saida">Apenas Saídas</option>
                 </select>
             </div>
-
-            <!-- Operador -->
-            <div class="flex flex-col gap-1">
-                <label class="text-[11px] font-bold text-on-surface-variant uppercase">Operador Guarita</label>
-                <select 
-                    wire:model.live="operatorFilter" 
-                    class="h-10 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
-                >
-                    <option value="todos">Todos os Operadores</option>
-                    <option value="Guarda Silva">Guarda Silva</option>
-                    <option value="Guarda Ribeiro">Guarda Ribeiro</option>
-                    <option value="Sistema OCR Auto">Sistema OCR Auto</option>
-                </select>
-            </div>
         </div>
+
+        <!-- Banner de Feedback do Filtro de Assiduidade -->
+        @if ($dayOfWeekFilter !== 'todos' || !empty(trim($driverSearch)))
+            <div class="p-3 bg-primary/5 border border-primary/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
+                    <span class="text-on-surface">
+                        Filtro de assiduidade ativo:
+                        @if (!empty(trim($driverSearch)))
+                            Condutor <strong>"{{ $driverSearch }}"</strong>
+                        @endif
+                        @if ($dayOfWeekFilter !== 'todos')
+                            em <strong>{{ ucfirst($dayOfWeekFilter) }}-feiras</strong>
+                        @endif
+                        — <strong class="text-primary">{{ count($filteredData) }}</strong> registro(s) encontrado(s) no período com data e horário.
+                    </span>
+                </div>
+                <span class="text-[11px] text-on-surface-variant font-semibold">
+                    Relatório pronto para conferência de ponto/frequência
+                </span>
+            </div>
+        @endif
     </div>
 
     <!-- SUMÁRIO EXECUTIVO DO RELATÓRIO -->
@@ -122,8 +179,10 @@
             </div>
         </div>
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
-            <span class="text-[11px] font-bold text-on-surface-variant uppercase">Taxa de OCR Efetiva</span>
-            <div class="text-2xl font-extrabold text-primary font-mono">98.2%</div>
+            <span class="text-[11px] font-bold text-on-surface-variant uppercase">Docentes Identificados</span>
+            <div class="text-2xl font-extrabold text-primary font-mono">
+                {{ count(array_filter($filteredData, fn($i) => ($i['category'] ?? '') === 'professor')) }}
+            </div>
         </div>
     </div>
 
@@ -132,13 +191,18 @@
         <div class="flex items-center justify-between">
             <div class="flex flex-col">
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-700">Governo do Estado de São Paulo • Centro Paula Souza</span>
-                <h1 class="text-2xl font-black tracking-tight text-black">Sentinela FATEC • Relatório de Tráfego Veicular</h1>
+                <h1 class="text-2xl font-black tracking-tight text-black">Sentinela FATEC • Relatório de Tráfego & Assiduidade Docente</h1>
                 <span class="text-sm font-semibold text-gray-800">Unidade FATEC - Sistema Integrado de Controle de Portaria</span>
             </div>
             <div class="text-right text-xs">
                 <div>Emissão: <strong>{{ date('d/m/Y H:i:s') }}</strong></div>
                 <div>Período: <strong>{{ $startDate }} até {{ $endDate }}</strong></div>
-                <div>Operador Responsável: <strong>Guarda Silva</strong></div>
+                @if ($dayOfWeekFilter !== 'todos')
+                    <div>Dia Filtrado: <strong>{{ ucfirst($dayOfWeekFilter) }}-feira</strong></div>
+                @endif
+                @if (!empty(trim($driverSearch)))
+                    <div>Condutor: <strong>{{ $driverSearch }}</strong></div>
+                @endif
             </div>
         </div>
     </div>
@@ -147,7 +211,7 @@
     <div class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
         <div class="p-4 bg-surface-container-low border-b border-surface-container flex items-center justify-between no-print">
             <h3 class="text-xs font-bold text-on-surface uppercase tracking-wider">
-                Listagem Detalhada de Movimentações
+                Listagem Detalhada de Movimentações (Data, Horário e Dia da Semana)
             </h3>
             <span class="text-xs text-on-surface-variant">
                 Pronto para exportação em PDF via navegador
@@ -158,23 +222,31 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-surface-container/60 text-on-surface-variant uppercase text-[11px] font-bold tracking-wider h-11 border-b border-surface-container">
-                        <th class="py-2.5 px-4">Protocolo / Data</th>
+                        <th class="py-2.5 px-4">Protocolo</th>
+                        <th class="py-2.5 px-4">Data & Horário</th>
+                        <th class="py-2.5 px-4">Dia da Semana</th>
                         <th class="py-2.5 px-4">Placa Mercosul</th>
                         <th class="py-2.5 px-4">Condutor & Categoria</th>
-                        <th class="py-2.5 px-4">Tipo Movimentação</th>
+                        <th class="py-2.5 px-4">Movimentação</th>
                         <th class="py-2.5 px-4">Cancela</th>
                         <th class="py-2.5 px-4">Operador</th>
-                        <th class="py-2.5 px-4 text-right">Confiança OCR</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-container text-xs">
                     @forelse ($filteredData as $item)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors">
+                        <tr wire:key="report-{{ $item['id'] }}" class="hover:bg-surface-container-low/60 transition-colors">
+                            <td class="py-3 px-4 font-bold text-on-surface font-mono">
+                                {{ $item['id'] }}
+                            </td>
+
                             <td class="py-3 px-4">
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-on-surface font-mono">{{ $item['id'] }}</span>
-                                    <span class="text-on-surface-variant text-[11px] font-mono">{{ $item['date_time'] }}</span>
-                                </div>
+                                <span class="font-bold text-on-surface font-mono text-xs block">{{ $item['date_time'] }}</span>
+                            </td>
+
+                            <td class="py-3 px-4">
+                                <span class="inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-bold {{ ($item['day_of_week'] ?? '') === 'segunda' ? 'bg-blue-100 text-blue-900 border border-blue-200' : 'bg-surface-container-high text-on-surface' }}">
+                                    {{ $item['day_of_week_label'] ?? 'Segunda-feira' }}
+                                </span>
                             </td>
 
                             <td class="py-3 px-4">
@@ -215,10 +287,6 @@
 
                             <td class="py-3 px-4 font-semibold text-on-surface">
                                 {{ $item['operator'] }}
-                            </td>
-
-                            <td class="py-3 px-4 text-right font-mono font-bold text-on-surface">
-                                {{ $item['ocr_score'] }}
                             </td>
                         </tr>
                     @empty
