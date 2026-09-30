@@ -28,7 +28,7 @@
         <div class="p-4 flex flex-col gap-5 overflow-y-auto">
             <!-- Brand & Identidade -->
             <div class="flex items-center justify-between">
-                <a href="{{ $isAdminArea ? route('admin.dashboard') : route('portaria.monitoramento') }}" class="flex items-center gap-2.5 group">
+                <a href="{{ $isAdminArea ? route('admin.dashboard') : route('portaria.monitoramento') }}" wire:navigate class="flex items-center gap-2.5 group">
                     <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
                         <span class="material-symbols-outlined text-[22px]">shield_person</span>
                     </div>
@@ -64,6 +64,7 @@
                         
                         <a 
                             href="{{ route('portaria.monitoramento') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('portaria.monitoramento') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">videocam</span>
@@ -72,6 +73,7 @@
 
                         <a 
                             href="{{ route('portaria.visitantes') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('portaria.visitantes') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">badge</span>
@@ -87,6 +89,7 @@
 
                         <a 
                             href="{{ route('admin.dashboard') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">analytics</span>
@@ -95,6 +98,7 @@
 
                         <a 
                             href="{{ route('admin.usuarios') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.usuarios') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">manage_accounts</span>
@@ -103,6 +107,7 @@
 
                         <a 
                             href="{{ route('admin.condutores') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.condutores') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">group</span>
@@ -111,6 +116,7 @@
 
                         <a 
                             href="{{ route('admin.relatorios') }}"
+                            wire:navigate
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all {{ request()->routeIs('admin.relatorios') ? 'bg-primary-container text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }}"
                         >
                             <span class="material-symbols-outlined text-[19px]">description</span>

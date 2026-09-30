@@ -234,7 +234,7 @@
                 </thead>
                 <tbody class="divide-y divide-surface-container text-xs">
                     @forelse ($filteredData as $item)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors">
+                        <tr wire:key="report-{{ $item['id'] }}" class="hover:bg-surface-container-low/60 transition-colors">
                             <td class="py-3 px-4 font-bold text-on-surface font-mono">
                                 {{ $item['id'] }}
                             </td>

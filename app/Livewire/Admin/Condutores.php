@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -304,7 +305,8 @@ class Condutores extends Component
         $this->toastMessage = '';
     }
 
-    public function getFilteredPeopleProperty(): array
+    #[Computed]
+    public function filteredPeople(): array
     {
         return array_filter($this->people, function ($item) {
             // Tab filter

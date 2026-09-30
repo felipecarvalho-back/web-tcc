@@ -104,7 +104,7 @@
 
                 <div class="flex flex-col gap-3">
                     @foreach ($vehicles as $index => $v)
-                        <div class="p-3 bg-surface-container-lowest rounded-xl border border-surface-container flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                        <div wire:key="modal-vehicle-{{ $index }}" class="p-3 bg-surface-container-lowest rounded-xl border border-surface-container flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                             <span class="text-xs font-bold text-on-surface-variant font-mono sm:w-6">
                                 #{{ $index + 1 }}
                             </span>
@@ -167,7 +167,8 @@
             <button 
                 type="submit" 
                 form="form-condutor"
-                class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                wire:loading.attr="disabled"
+                class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
                 <span class="material-symbols-outlined text-[18px]">save</span>
                 <span>{{ $editingId ? 'Salvar Alterações' : 'Cadastrar Condutor' }}</span>

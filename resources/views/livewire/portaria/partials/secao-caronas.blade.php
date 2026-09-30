@@ -49,7 +49,7 @@
     @if (count($passengers) > 0)
         <div class="flex flex-wrap gap-2 mt-1.5 pt-2 border-t border-surface-container">
             @foreach ($passengers as $index => $passenger)
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                <div wire:key="passenger-{{ $index }}-{{ $passenger }}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
                     <span class="material-symbols-outlined text-[15px] leading-none">person</span>
                     <span class="font-mono">Carona: {{ $passenger }}</span>
                     <button 

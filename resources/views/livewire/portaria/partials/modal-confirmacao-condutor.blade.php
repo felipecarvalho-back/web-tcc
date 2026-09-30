@@ -72,7 +72,8 @@
             <button 
                 type="button" 
                 wire:click="confirmDriver"
-                class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                wire:loading.attr="disabled"
+                class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
                 <span class="material-symbols-outlined text-[18px]">check_circle</span>
                 <span>Confirmar e Liberar Cancela</span>

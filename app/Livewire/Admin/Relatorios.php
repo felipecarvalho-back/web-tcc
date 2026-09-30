@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -231,7 +232,8 @@ class Relatorios extends Component
         $this->operatorFilter = 'todos';
     }
 
-    public function getFilteredDataProperty(): array
+    #[Computed]
+    public function filteredData(): array
     {
         return array_filter($this->reportData, function ($item) {
             // Filtro por dia da semana (ex: segunda-feira)

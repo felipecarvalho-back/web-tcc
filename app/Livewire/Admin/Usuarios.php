@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -251,7 +252,8 @@ class Usuarios extends Component
         $this->resetErrorBag();
     }
 
-    public function getFilteredUsuariosProperty(): array
+    #[Computed]
+    public function filteredUsuarios(): array
     {
         return array_filter($this->usuarios, function ($user) {
             // Busca por texto

@@ -188,7 +188,8 @@
                 <div class="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-surface-container">
                     <button 
                         type="submit" 
-                        class="w-full sm:flex-1 h-12 bg-primary hover:bg-primary-container text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
+                        wire:loading.attr="disabled"
+                        class="w-full sm:flex-1 h-12 bg-primary hover:bg-primary-container disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-[22px]">garage</span>
                         <span>Cadastrar e Liberar Cancela Imediatamente</span>
@@ -211,7 +212,7 @@
 
             <div class="flex flex-col gap-3 overflow-y-auto max-h-[580px] pr-1">
                 @forelse ($recentVisitors as $visitor)
-                    <div class="p-4 rounded-xl border border-surface-container bg-surface-container-low/60 hover:bg-surface-container-low transition-colors flex flex-col gap-3">
+                    <div wire:key="visitor-{{ $visitor['id'] }}" class="p-4 rounded-xl border border-surface-container bg-surface-container-low/60 hover:bg-surface-container-low transition-colors flex flex-col gap-3">
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <!-- Card de Placa -->

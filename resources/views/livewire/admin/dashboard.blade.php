@@ -159,7 +159,7 @@
             @endphp
 
             @foreach ($hours as $h)
-                <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
+                <div wire:key="hour-{{ $h['time'] }}" class="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
                     <div class="w-full flex items-end justify-center gap-1.5 h-full">
                         <!-- Barra Entrada -->
                         <div 
@@ -213,7 +213,7 @@
                 </thead>
                 <tbody class="divide-y divide-surface-container text-xs">
                     @foreach ($recentAuditLogs as $log)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors">
+                        <tr wire:key="audit-log-{{ $log['id'] }}" class="hover:bg-surface-container-low/60 transition-colors">
                             <td class="py-3 px-4 font-bold text-on-surface">{{ $log['operator'] }}</td>
                             <td class="py-3 px-4 text-on-surface-variant">{{ $log['action'] }}</td>
                             <td class="py-3 px-4 font-bold font-mono text-on-surface">{{ $log['plate'] }}</td>

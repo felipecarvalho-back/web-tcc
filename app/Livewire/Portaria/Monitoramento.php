@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Portaria;
 
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -400,7 +401,8 @@ class Monitoramento extends Component
         $this->toastMessage = '';
     }
 
-    public function getFilteredRecordsProperty(): array
+    #[Computed]
+    public function filteredRecords(): array
     {
         return array_filter($this->records, function ($record) {
             if ($this->filterPlate && stripos($record['plate'], trim($this->filterPlate)) === false) {

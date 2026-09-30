@@ -172,7 +172,7 @@
                 </thead>
                 <tbody class="divide-y divide-surface-container">
                     @forelse ($filteredRecords as $record)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors {{ $record['status'] === 'pendente' ? 'bg-amber-50/40' : '' }}">
+                        <tr wire:key="record-{{ $record['id'] }}" class="hover:bg-surface-container-low/60 transition-colors {{ $record['status'] === 'pendente' ? 'bg-amber-50/40' : '' }}">
                             <!-- Captura Mobile -->
                             <td class="py-3 px-4">
                                 <div class="relative group w-24 h-14 rounded-lg overflow-hidden bg-surface-container-high border border-surface-container shadow-xs cursor-pointer">

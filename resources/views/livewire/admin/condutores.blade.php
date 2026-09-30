@@ -104,7 +104,7 @@
                 </thead>
                 <tbody class="divide-y divide-surface-container text-xs">
                     @forelse ($filteredPeople as $person)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors">
+                        <tr wire:key="person-{{ $person['id'] }}" class="hover:bg-surface-container-low/60 transition-colors">
                             <!-- Condutor -->
                             <td class="py-3 px-4">
                                 <div class="flex items-center gap-3">
@@ -131,7 +131,7 @@
                             <td class="py-3 px-4">
                                 <div class="flex flex-wrap gap-2 items-center max-w-md">
                                     @foreach ($person['vehicles'] as $v)
-                                        <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-surface-container-low border border-surface-container rounded-lg">
+                                        <div wire:key="vehicle-{{ $person['id'] }}-{{ $v['plate'] }}" class="inline-flex items-center gap-1.5 px-2 py-1 bg-surface-container-low border border-surface-container rounded-lg">
                                             <!-- Mini card placa Mercosul -->
                                             <div class="inline-flex flex-col rounded bg-white border border-gray-300 overflow-hidden w-16 text-center shrink-0">
                                                 <div class="bg-blue-800 text-white text-[6px] font-bold py-0.2 tracking-wider uppercase">

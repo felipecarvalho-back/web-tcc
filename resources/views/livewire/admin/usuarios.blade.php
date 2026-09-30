@@ -165,7 +165,7 @@
                 </thead>
                 <tbody class="divide-y divide-surface-container text-xs">
                     @forelse ($filteredUsuarios as $user)
-                        <tr class="hover:bg-surface-container-low/60 transition-colors">
+                        <tr wire:key="user-{{ $user['id'] }}" class="hover:bg-surface-container-low/60 transition-colors">
                             <!-- Nome & E-mail -->
                             <td class="py-3 px-4">
                                 <div class="flex items-center gap-3">
@@ -415,7 +415,8 @@
                 <button 
                     type="button" 
                     wire:click="save"
-                    class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                    wire:loading.attr="disabled"
+                    class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                 >
                     <span class="material-symbols-outlined text-[18px]">save</span>
                     <span>Salvar Usuário</span>
