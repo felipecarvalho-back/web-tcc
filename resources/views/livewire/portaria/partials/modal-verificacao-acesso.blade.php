@@ -73,13 +73,15 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center mt-1">
                 <div class="relative flex items-center">
-                    <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">badge</span>
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
+                        <span class="material-symbols-outlined text-[18px] leading-none">badge</span>
+                    </div>
                     <input 
                         wire:model="driverAccessCode"
                         id="driver-access-code-input"
                         type="text" 
                         placeholder="Ex: DOC-94281 ou ADM-10293" 
-                        class="w-full h-11 pl-9 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
+                        class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
                     />
                 </div>
                 <p class="text-[11px] text-on-surface-variant">
