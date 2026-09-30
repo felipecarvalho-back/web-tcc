@@ -142,8 +142,8 @@
         </div>
     </div>
 
-    <!-- LISTA DE ENTRADA DE VEÍCULOS -->
-    <div class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
+    <!-- LISTA DE ENTRADA DE VEÍCULOS (ATUALIZAÇÃO AUTOMÁTICA) -->
+    <div wire:poll.5s class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
         <!-- Barra de Cabeçalho da Tabela -->
         <div class="p-4 bg-surface-container-low border-b border-surface-container flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2.5">
@@ -151,7 +151,10 @@
                 <h2 class="text-base font-bold text-on-surface">Fila da Cancela 01 (Entrada Principal)</h2>
                 <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Ao Vivo</span>
             </div>
-            <span class="text-xs text-on-surface-variant">Sincronização em tempo real via WebSocket</span>
+            <span class="text-xs text-on-surface-variant flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Atualização automática a cada 5s (Livewire Polling)</span>
+            </span>
         </div>
 
         <!-- Tabela Responsiva -->
@@ -187,13 +190,6 @@
                             <!-- Card de Placa Mercosul -->
                             <td class="py-3 px-4">
                                 <x-mercosul-plate :plate="$record['plate']" />
-
-                                <div class="flex items-center gap-1 mt-1 text-[11px] font-bold {{ $record['confidence'] >= 90 ? 'text-emerald-700' : ($record['confidence'] >= 75 ? 'text-amber-700' : 'text-primary') }}">
-                                    <span class="material-symbols-outlined text-[14px]">
-                                        {{ $record['confidence'] >= 90 ? 'check_circle' : 'warning' }}
-                                    </span>
-                                    <span>OCR: {{ $record['confidence'] }}%</span>
-                                </div>
                             </td>
 
                             <!-- Condutor & Categoria -->

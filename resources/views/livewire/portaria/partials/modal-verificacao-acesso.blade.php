@@ -17,7 +17,7 @@
                     <div class="flex items-center gap-2 mt-0.5">
                         <x-mercosul-plate :plate="$selectedRecord['plate']" size="sm" />
                         <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
-                            {{ $selectedRecord['status_label'] }} (OCR: {{ $selectedRecord['confidence'] }}%)
+                            {{ $selectedRecord['status_label'] }}
                         </span>
                     </div>
                 </div>
