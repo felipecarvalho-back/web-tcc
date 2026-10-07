@@ -22,17 +22,17 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         // 1. Normaliza as credenciais (suporta 'login', 'email' ou 'username' e 'senha' ou 'password')
-        $identificador = $request->input('login') ?? $request->input('email') ?? $request->input('username');
-        $senha = $request->input('senha') ?? $request->input('password');
+        $codigo = $request->input('username');
+        $senha = $$request->input('password');
 
         $validator = Validator::make([
-            'login' => $identificador,
+            'login' => $codigo,
             'senha' => $senha,
         ], [
             'login' => ['required', 'string'],
             'senha' => ['required', 'string'],
         ], [
-            'login.required' => 'Informe o e-mail ou código de operador.',
+            'login.required' => 'Informe o código de operador.',
             'senha.required' => 'A senha é obrigatória.',
         ]);
 
@@ -44,42 +44,30 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $identificador = trim((string) $identificador);
+        $codigo = trim((string) $codigo);
 
-        // 2. Busca o usuário por email, codigo_operador ou cpf
-        $usuario = Usuario::query()
-            ->where(function ($query) use ($identificador) {
-                $query->where('email', $identificador)
-                    ->orWhere('codigo_operador', $identificador)
-                    ->orWhere('cpf', $identificador);
-            })
+        // 2. Busca o usuário por codigo_operador E que esteja ativo (ativo = 1)
+        $usuario = Usuario::select('id', 'nome', 'codigo_operador', 'email', 'senha', 'ativo', 'perfil')
+            ->where('codigo_operador', $codigo)
+            ->where('ativo', 1) // Garante que só traz se estiver ativo
             ->first();
 
-        // 3. Validação de existência e verificação de senha
-        if (! $usuario || ! Hash::check($senha, $usuario->senha)) {
+        // 3. Se não achar (ou porque não existe, ou porque está inativo) OU a senha estiver errada
+        if (!$usuario || !Hash::check($senha, $usuario->senha)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Credenciais inválidas. Verifique seu usuário e senha.',
+                'message' => 'Credenciais inválidas ou usuário inativo.',
             ], 401);
         }
 
-        // 4. Verificação de status ativo
-        if (! $usuario->ativo) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Acesso negado. Usuário inativo no sistema.',
-            ], 403);
-        }
-
-        // 5. Geração do token JWT
+        // 4. Geração do token JWT
         $token = $this->jwtService->generateToken($usuario);
 
-        // 6. Retorno padronizado
+        // 5. Retorno padronizado
         return response()->json([
             'status' => 'success',
             'message' => 'Autenticação realizada com sucesso.',
             'access_token' => $token,
-            'token_type' => 'bearer',
             'expires_in' => $this->jwtService->getTTLInSeconds(),
             'usuario' => [
                 'id' => $usuario->id,
@@ -91,28 +79,7 @@ class AuthController extends Controller
             ],
         ], 200);
     }
-
-    /**
-     * Retorna os dados do usuário autenticado no token atual.
-     */
-    public function me(Request $request): JsonResponse
-    {
-        /** @var Usuario $usuario */
-        $usuario = $request->user();
-
-        return response()->json([
-            'status' => 'success',
-            'usuario' => [
-                'id' => $usuario->id,
-                'nome' => $usuario->nome,
-                'email' => $usuario->email,
-                'codigo_operador' => $usuario->codigo_operador,
-                'perfil' => $usuario->perfil,
-                'ativo' => (bool) $usuario->ativo,
-            ],
-        ]);
-    }
-
+    
     /**
      * Renova o token JWT emitindo um novo para o usuário autenticado.
      */
@@ -128,17 +95,6 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $this->jwtService->getTTLInSeconds(),
-        ]);
-    }
-
-    /**
-     * Finaliza a sessão / logout do token.
-     */
-    public function logout(): JsonResponse
-    {
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Desconectado com sucesso.',
         ]);
     }
 }
