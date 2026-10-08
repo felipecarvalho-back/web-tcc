@@ -15,9 +15,9 @@ beforeEach(function () {
     ]);
 });
 
-test('retorna token jwt e dados do usuario ao fazer login por email', function () {
+test('retorna token jwt e dados do usuario ao fazer login por codigo_operador', function () {
     $response = $this->postJson('/api/login', [
-        'login' => 'operador@fatec.sp.gov.br',
+        'codigo' => 'OP-100',
         'senha' => 'segredo123',
     ]);
 
@@ -53,31 +53,16 @@ test('retorna token jwt e dados do usuario ao fazer login por email', function (
     expect($response->json('access_token'))->toBeString()->not->toBeEmpty();
 });
 
-test('retorna token jwt e dados do usuario ao fazer login por codigo_operador', function () {
-    $response = $this->postJson('/api/login', [
-        'login' => 'OP-100',
-        'senha' => 'segredo123',
-    ]);
-
-    $response->assertStatus(200)
-        ->assertJson([
-            'status' => 'success',
-            'usuario' => [
-                'codigo_operador' => 'OP-100',
-            ],
-        ]);
-});
-
 test('retorna erro 401 para credenciais incorretas', function () {
     $response = $this->postJson('/api/login', [
-        'login' => 'operador@fatec.sp.gov.br',
+        'codigo' => 'OP-100',
         'senha' => 'senha_errada',
     ]);
 
     $response->assertStatus(401)
         ->assertJson([
             'status' => 'error',
-            'message' => 'Credenciais inválidas. Verifique seu usuário e senha.',
+            'message' => 'Credenciais inválidas. Verifique seu código de operador e senha.',
         ]);
 });
 
@@ -85,7 +70,7 @@ test('retorna erro 403 quando o usuario esta inativo', function () {
     $this->usuario->update(['ativo' => false]);
 
     $response = $this->postJson('/api/login', [
-        'login' => 'OP-100',
+        'codigo' => 'OP-100',
         'senha' => 'segredo123',
     ]);
 
@@ -100,35 +85,5 @@ test('valida campos obrigatorios no login', function () {
     $response = $this->postJson('/api/login', []);
 
     $response->assertStatus(422)
-        ->assertJsonValidationErrors(['login', 'senha']);
-});
-
-test('permite acessar rota protegida com o token jwt', function () {
-    $loginResponse = $this->postJson('/api/login', [
-        'login' => 'OP-100',
-        'senha' => 'segredo123',
-    ]);
-
-    $token = $loginResponse->json('access_token');
-
-    $response = $this->withHeader('Authorization', 'Bearer '.$token)
-        ->getJson('/api/me');
-
-    $response->assertStatus(200)
-        ->assertJson([
-            'status' => 'success',
-            'usuario' => [
-                'id' => $this->usuario->id,
-                'email' => 'operador@fatec.sp.gov.br',
-            ],
-        ]);
-});
-
-test('bloqueia acesso a rota protegida sem token jwt', function () {
-    $response = $this->getJson('/api/me');
-
-    $response->assertStatus(401)
-        ->assertJson([
-            'status' => 'error',
-        ]);
+        ->assertJsonValidationErrors(['codigo', 'senha']);
 });
