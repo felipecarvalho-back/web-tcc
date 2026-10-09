@@ -21,11 +21,11 @@ class AuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        // Aceita 'codigo' ou 'codigo_operador'
-        $codigo = $request->input('codigo') ?? $request->input('codigo_operador');
+        // Aceita 'codigo_operador'
+        $codigo = $request->input('codigo_operador');
 
         // Aceita 'senha' ou 'password'
-        $senha = $request->input('senha') ?? $request->input('password');
+        $senha = $request->input('senha');
 
         $validator = Validator::make([
             'codigo' => $codigo,
