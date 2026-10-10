@@ -211,11 +211,18 @@ class Usuarios extends Component
     #[Computed]
     public function stats(): array
     {
+        $counts = Usuario::selectRaw("
+            count(*) as total,
+            count(case when perfil = 'admin' then 1 end) as admins,
+            count(case when perfil = 'operador' then 1 end) as operadores,
+            count(case when perfil = 'supervisor' then 1 end) as supervisores
+        ")->first();
+
         return [
-            'total' => Usuario::count(),
-            'admins' => Usuario::where('perfil', 'admin')->count(),
-            'operadores' => Usuario::where('perfil', 'operador')->count(),
-            'supervisores' => Usuario::where('perfil', 'supervisor')->count(),
+            'total' => (int) ($counts->total ?? 0),
+            'admins' => (int) ($counts->admins ?? 0),
+            'operadores' => (int) ($counts->operadores ?? 0),
+            'supervisores' => (int) ($counts->supervisores ?? 0),
         ];
     }
 
@@ -223,6 +230,7 @@ class Usuarios extends Component
     public function usuarios(): LengthAwarePaginator
     {
         return Usuario::query()
+            ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at'])
             ->when(trim($this->search), function ($query, $term) {
                 $query->where(function ($q) use ($term) {
                     $q->where('nome', 'like', "%{$term}%")
