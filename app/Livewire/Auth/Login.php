@@ -2,27 +2,46 @@
 
 namespace App\Livewire\Auth;
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 #[Layout('layouts.guest')]
 #[Title('Acesso ao Sistema - Sentinela FATEC')]
 class Login extends Component
 {
-    public string $accessCode = 'GDA-104';
+    #[Validate('required', message: 'Informe o código de acesso.')]
+    public string $accessCode = '';
 
-    public string $password = '123456';
+    #[Validate('required', message: 'Informe a senha.')]
+    public string $password = '';
 
-    public bool $remember = true;
+    public bool $remember = false;
 
-    public function login(): mixed
+    public function login()
     {
-        if (str_starts_with(strtoupper(trim($this->accessCode)), 'ADM')) {
-            return $this->redirectRoute('admin.dashboard', navigate: true);
+        $this->validate();
+
+        $credenciais = [
+            'codigo_operador' => strtoupper(trim($this->accessCode)),
+            'password'        => $this->password, // o Laravel compara com a coluna "senha"
+            'ativo'           => true,            // usuário desativado não entra
+        ];
+
+        if (! Auth::attempt($credenciais, $this->remember)) {
+            $this->addError('accessCode', 'Código de acesso ou senha inválidos.');
+            return;
         }
 
-        return $this->redirectRoute('portaria.monitoramento', navigate: true);
+        session()->regenerate(); // pulseira nova, por segurança
+
+        $perfil = Auth::user()->perfil;
+
+        return $perfil === 'admin'
+            ? $this->redirectRoute('admin.dashboard', navigate: true)
+            : $this->redirectRoute('portaria.monitoramento', navigate: true);
     }
 
     public function render()

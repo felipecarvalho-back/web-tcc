@@ -36,7 +36,7 @@
                     <div class="flex flex-col gap-1.5">
                         <label for="accessCode" class="text-xs font-bold text-on-surface flex items-center justify-between">
                             <span>Código de Acesso</span>
-                            <span class="text-on-surface-variant font-mono text-[11px]">Ex: GDA-104 ou ADM-001</span>
+                            <span class="text-on-surface-variant font-mono text-[11px]">Ex: GDA-100 ou ADM-001</span>
                         </label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">pin</span>
@@ -49,6 +49,14 @@
                                 class="w-full h-11 pl-10 pr-4 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
                             />
                         </div>
+
+                        {{-- Mensagem de erro do código de acesso (ou de login inválido) --}}
+                        @error('accessCode')
+                            <p class="text-xs font-semibold text-red-600 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">error</span>
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
 
                     <!-- Senha / PIN -->
@@ -72,6 +80,14 @@
                                 <span class="material-symbols-outlined text-[20px]" x-text="showPassword ? 'visibility_off' : 'visibility'">visibility</span>
                             </button>
                         </div>
+
+                        {{-- Mensagem de erro da senha --}}
+                        @error('password')
+                            <p class="text-xs font-semibold text-red-600 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">error</span>
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
 
                     <!-- Lembrar sessão -->
@@ -89,10 +105,12 @@
                     <!-- Botão de Acesso -->
                     <button 
                         type="submit" 
-                        class="w-full h-12 mt-2 bg-primary hover:bg-primary-container text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
+                        wire:loading.attr="disabled"
+                        class="w-full h-12 mt-2 bg-primary hover:bg-primary-container text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <span class="material-symbols-outlined text-[20px]">login</span>
-                        <span>Acessar Terminal</span>
+                        <span wire:loading.remove wire:target="login">Acessar Terminal</span>
+                        <span wire:loading wire:target="login">Verificando...</span>
                     </button>
                 </form>
             </div>
