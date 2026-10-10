@@ -89,18 +89,6 @@
                         @enderror
                     </div>
 
-                    <!-- Lembrar sessão -->
-                    <div class="flex items-center justify-between mt-1">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                wire:model="remember"
-                                type="checkbox"
-                                class="w-4 h-4 rounded text-primary focus:ring-primary border-surface-container-highest cursor-pointer"
-                            />
-                            <span class="text-xs text-on-surface-variant font-medium">Manter credenciais neste terminal</span>
-                        </label>
-                    </div>
-
                     <!-- Botão de Acesso -->
                     <button
                         type="submit"

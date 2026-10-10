@@ -22,8 +22,6 @@ class Login extends Component
     #[Validate('required', message: 'Informe a senha.')]
     public string $password = '';
 
-    public bool $remember = false;
-
     public function login()
     {
         $this->validate();
@@ -44,7 +42,7 @@ class Login extends Component
                 'ativo' => true,
             ];
 
-            if (! Auth::attempt($credenciais, $this->remember)) {
+            if (! Auth::attempt($credenciais)) {
                 RateLimiter::hit($throttleKey, 60);
                 $this->addError('accessCode', 'Código de acesso ou senha inválidos.');
 
