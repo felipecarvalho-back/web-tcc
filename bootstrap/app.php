@@ -14,6 +14,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Quem já está logado e abre /login é mandado para a tela do seu perfil
+        $middleware->redirectUsersTo(function (Request $request) {
+            return $request->user()->perfil === 'admin'
+                ? route('admin.dashboard')
+                : route('portaria.monitoramento');
+        });
+
         $middleware->trustProxies(at: '*');
         $middleware->alias([
             'jwt.auth' => JwtAuthenticate::class,
