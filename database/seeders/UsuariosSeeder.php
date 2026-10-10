@@ -23,17 +23,5 @@ class UsuariosSeeder extends Seeder
                 'ativo' => true,
             ]
         );
-
-        Usuario::query()->firstOrCreate(
-            ['codigo_operador' => 'GDA-100'],
-            [
-                'nome' => 'Matheus',
-                'cpf' => '111.222.333-44',
-                'email' => 'teste@teste.com',
-                'senha' => '123456',
-                'perfil' => 'operador',
-                'ativo' => true,
-            ]
-        );
     }
 }
