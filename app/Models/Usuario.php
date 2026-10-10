@@ -53,6 +53,11 @@ class Usuario extends Authenticatable
         ];
     }
 
+    public function getAuthPasswordName(): string
+    {
+        return 'senha';
+    }
+
     public function getAuthPassword(): string
     {
         return $this->senha;
