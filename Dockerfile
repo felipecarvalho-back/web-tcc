@@ -45,11 +45,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN setcap -r /usr/local/bin/frankenphp || true && \
     chmod 755 /usr/local/bin/frankenphp
 
-# Instala extensões PHP necessárias para Laravel e SQLite
+# Instala extensões PHP necessárias para Laravel, SQLite e PostgreSQL (Supabase)
 RUN install-php-extensions \
     pcntl \
     pdo_sqlite \
     sqlite3 \
+    pdo_pgsql \
+    pgsql \
     bcmath \
     intl \
     zip \

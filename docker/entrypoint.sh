@@ -28,8 +28,8 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force --no-interaction
 fi
 
-# Executa migrações no banco SQLite para sessões, cache e tabelas base
-echo "[Sentinela] Executando migracoes do banco SQLite..."
+# Executa migrações no banco de dados para sessões, cache e tabelas base
+echo "[Sentinela] Executando migracoes do banco de dados..."
 php artisan migrate --force --graceful --no-interaction
 
 # Otimizações de cache em ambiente de produção
