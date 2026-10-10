@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -111,8 +113,18 @@ class Usuarios extends Component
     {
         $rules = [
             'nome' => 'required|min:3|max:100',
-            'cpf' => 'required|min:11|max:14',
-            'email' => 'required|email|max:100',
+            'cpf' => [
+                'required',
+                'min:11',
+                'max:14',
+                Rule::unique('usuarios', 'cpf')->ignore($this->editingId),
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:100',
+                Rule::unique('usuarios', 'email')->ignore($this->editingId),
+            ],
             'perfil' => 'required|in:admin,operador,supervisor',
         ];
 
@@ -166,6 +178,21 @@ class Usuarios extends Component
         $statusMsg = $novoStatus ? 'ativado' : 'desativado';
         $tipoToast = $novoStatus ? 'success' : 'info';
         $this->triggerToast("Usuário {$user->nome} foi {$statusMsg}!", $tipoToast);
+    }
+
+    public function delete(int $id): void
+    {
+        if (Auth::user() === $id) {
+            $this->triggerToast('Você não pode excluir seu próprio usuário logado!', 'error');
+
+            return;
+        }
+
+        $user = Usuario::findOrFail($id);
+        $nome = $user->nome;
+        $user->delete();
+
+        $this->triggerToast("Usuário {$nome} excluído com sucesso!", 'info');
     }
 
     private function resetForm(): void

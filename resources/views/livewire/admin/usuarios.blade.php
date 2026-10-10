@@ -234,16 +234,29 @@
                                         <span>Editar</span>
                                     </button>
 
-                                    <button type="button" wire:click="toggleStatus({{ $user->id }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="toggleStatus({{ $user->id }})"
-                                        class="h-8 px-2.5 rounded-lg {{ $user->ativo ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200' }} text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
-                                        title="{{ $user->ativo ? 'Desativar acesso' : 'Reativar acesso' }}">
-                                        <span class="material-symbols-outlined text-[15px]">
-                                            {{ $user->ativo ? 'block' : 'check_circle' }}
-                                        </span>
-                                        <span>{{ $user->ativo ? 'Desativar' : 'Ativar' }}</span>
-                                    </button>
+                                    @if (auth()->id() !== $user->id)
+                                        <button type="button" wire:click="toggleStatus({{ $user->id }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="toggleStatus({{ $user->id }})"
+                                            class="h-8 px-2.5 rounded-lg {{ $user->ativo ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200' }} text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                                            title="{{ $user->ativo ? 'Desativar acesso' : 'Reativar acesso' }}">
+                                            <span class="material-symbols-outlined text-[15px]">
+                                                {{ $user->ativo ? 'block' : 'check_circle' }}
+                                            </span>
+                                            <span>{{ $user->ativo ? 'Desativar' : 'Ativar' }}</span>
+                                        </button>
+                                    @endif
+
+                                    @if (auth()->id() !== $user->id)
+                                        <button type="button" wire:click="delete({{ $user->id }})"
+                                            wire:confirm="Tem certeza de que deseja excluir o usuário {{ $user->nome }}? Esta ação enviará o usuário para a lixeira."
+                                            wire:loading.attr="disabled" wire:target="delete({{ $user->id }})"
+                                            class="h-8 px-2.5 rounded-lg bg-red-50 text-red-800 hover:bg-red-100 border border-red-200 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                                            title="Excluir usuário">
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Excluir</span>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

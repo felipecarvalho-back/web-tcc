@@ -137,21 +137,24 @@
                 </div>
                 <div class="flex flex-col min-w-0">
                     <span class="text-xs font-bold text-on-surface truncate">
-                        {{ $isAdminArea ? 'Administrador' : 'Operador Guarita' }}
-                    </span>
-                    <span class="text-[11px] text-on-surface-variant truncate font-mono">
-                        {{ $isAdminArea ? 'Código: ADM-001' : 'Código: GDA-104' }}
-                    </span>
+    {{ auth()->user()->nome }}
+</span>
+<span class="text-[11px] text-on-surface-variant truncate font-mono">
+    Código: {{ auth()->user()->codigo_operador }}
+</span>
                 </div>
             </div>
 
-            <a 
-                href="{{ route('login') }}" 
-                class="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface-container hover:bg-error-container hover:text-error text-on-surface font-semibold text-xs rounded-lg transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-[17px]">logout</span>
-                <span>Sair do Sistema</span>
-            </a>
+            <form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button 
+        type="submit"
+        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface-container hover:bg-error-container hover:text-error text-on-surface font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+    >
+        <span class="material-symbols-outlined text-[17px]">logout</span>
+        <span>Sair do Sistema</span>
+    </button>
+</form>
         </div>
     </aside>
 
@@ -206,7 +209,7 @@
 
                 <!-- Badge de Código -->
                 <div class="px-2.5 py-1 bg-primary text-white rounded-lg font-mono font-bold text-xs shadow-xs">
-                    {{ $isAdminArea ? 'ADM-001' : 'GDA-104' }}
+                    {{ auth()->user()->codigo_operador }}
                 </div>
             </div>
         </header>

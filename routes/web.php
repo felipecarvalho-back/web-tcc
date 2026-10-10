@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Middleware\AdminIsValid;
+use App\Http\Middleware\GuardaIsValid;
 use App\Livewire\Admin\Condutores;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Relatorios;
@@ -10,17 +13,25 @@ use App\Livewire\Portaria\Visitantes;
 use Illuminate\Support\Facades\Route;
 
 // Autenticação (A aplicação sempre inicia pelo Login)
-Route::get('/', Login::class)->name('home');
-Route::get('/login', Login::class)->name('login');
+Route::redirect('/', '/login');
+Route::get('/login', Login::class)->name('login')->middleware('guest');
+Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Módulo Guarda / Portaria
-Route::get('/portaria', Monitoramento::class)->name('portaria.monitoramento');
-Route::get('/portaria/visitantes', Visitantes::class)->name('portaria.visitantes');
 
-// Módulo Administrativo
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
-    Route::get('/usuarios', Usuarios::class)->name('usuarios');
-    Route::get('/condutores', Condutores::class)->name('condutores');
-    Route::get('/relatorios', Relatorios::class)->name('relatorios');
+// Só entra quem estiver logado
+Route::middleware('auth')->group(function () {
+
+    // Módulo Guarda / Portaria
+    Route::middleware([GuardaIsValid::class])->group(function () {
+        Route::get('/portaria', Monitoramento::class)->name('portaria.monitoramento');
+        Route::get('/portaria/visitantes', Visitantes::class)->name('portaria.visitantes');
+    });
+
+    // Módulo Administrativo
+    Route::middleware([AdminIsValid::class])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', Dashboard::class)->name('dashboard');
+        Route::get('/usuarios', Usuarios::class)->name('usuarios');
+        Route::get('/condutores', Condutores::class)->name('condutores');
+        Route::get('/relatorios', Relatorios::class)->name('relatorios');
+    });
 });
