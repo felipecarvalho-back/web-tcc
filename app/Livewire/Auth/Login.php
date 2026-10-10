@@ -26,12 +26,13 @@ class Login extends Component
 
         $credenciais = [
             'codigo_operador' => strtoupper(trim($this->accessCode)),
-            'password'        => $this->password, // o Laravel compara com a coluna "senha"
-            'ativo'           => true,            // usuário desativado não entra
+            'password' => $this->password, // o Laravel compara com a coluna "senha"
+            'ativo' => true,            // usuário desativado não entra
         ];
 
         if (! Auth::attempt($credenciais, $this->remember)) {
             $this->addError('accessCode', 'Código de acesso ou senha inválidos.');
+
             return;
         }
 

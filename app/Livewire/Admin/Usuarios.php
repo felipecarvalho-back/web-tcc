@@ -7,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -166,6 +167,21 @@ class Usuarios extends Component
         $statusMsg = $novoStatus ? 'ativado' : 'desativado';
         $tipoToast = $novoStatus ? 'success' : 'info';
         $this->triggerToast("Usuário {$user->nome} foi {$statusMsg}!", $tipoToast);
+    }
+
+    public function delete(int $id): void
+    {
+        if (Auth::user() === $id) {
+            $this->triggerToast('Você não pode excluir seu próprio usuário logado!', 'error');
+
+            return;
+        }
+
+        $user = Usuario::findOrFail($id);
+        $nome = $user->nome;
+        $user->delete();
+
+        $this->triggerToast("Usuário {$nome} excluído com sucesso!", 'info');
     }
 
     private function resetForm(): void
