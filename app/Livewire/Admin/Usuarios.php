@@ -4,10 +4,11 @@ namespace App\Livewire\Admin;
 
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -112,8 +113,18 @@ class Usuarios extends Component
     {
         $rules = [
             'nome' => 'required|min:3|max:100',
-            'cpf' => 'required|min:11|max:14',
-            'email' => 'required|email|max:100',
+            'cpf' => [
+                'required',
+                'min:11',
+                'max:14',
+                Rule::unique('usuarios', 'cpf')->ignore($this->editingId),
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:100',
+                Rule::unique('usuarios', 'email')->ignore($this->editingId),
+            ],
             'perfil' => 'required|in:admin,operador,supervisor',
         ];
 

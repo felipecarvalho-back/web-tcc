@@ -36,15 +36,14 @@
                     <div class="flex flex-col gap-1.5">
                         <label for="accessCode" class="text-xs font-bold text-on-surface flex items-center justify-between">
                             <span>Código de Acesso</span>
-                            <span class="text-on-surface-variant font-mono text-[11px]">Ex: GDA-100 ou ADM-001</span>
                         </label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">pin</span>
-                            <input 
-                                wire:model="accessCode" 
-                                id="accessCode" 
-                                type="text" 
-                                required 
+                            <input
+                                wire:model="accessCode"
+                                id="accessCode"
+                                type="text"
+                                required
                                 placeholder="Insira seu código"
                                 class="w-full h-11 pl-10 pr-4 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
                             />
@@ -64,16 +63,16 @@
                         <label for="password" class="text-xs font-bold text-on-surface">Senha / PIN</label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">lock</span>
-                            <input 
-                                wire:model="password" 
-                                id="password" 
-                                :type="showPassword ? 'text' : 'password'" 
-                                required 
+                            <input
+                                wire:model="password"
+                                id="password"
+                                :type="showPassword ? 'text' : 'password'"
+                                required
                                 placeholder="Insira sua senha"
                                 class="w-full h-11 pl-10 pr-11 bg-surface-container-lowest border border-surface-container-highest/80 text-on-surface text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
                             />
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 @click="showPassword = !showPassword"
                                 class="absolute right-2 p-1.5 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors cursor-pointer"
                             >
@@ -93,9 +92,9 @@
                     <!-- Lembrar sessão -->
                     <div class="flex items-center justify-between mt-1">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input 
-                                wire:model="remember" 
-                                type="checkbox" 
+                            <input
+                                wire:model="remember"
+                                type="checkbox"
                                 class="w-4 h-4 rounded text-primary focus:ring-primary border-surface-container-highest cursor-pointer"
                             />
                             <span class="text-xs text-on-surface-variant font-medium">Manter credenciais neste terminal</span>
@@ -103,8 +102,8 @@
                     </div>
 
                     <!-- Botão de Acesso -->
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         wire:loading.attr="disabled"
                         class="w-full h-12 mt-2 bg-primary hover:bg-primary-container text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >

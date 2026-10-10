@@ -3,6 +3,8 @@
 namespace App\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
@@ -24,17 +26,29 @@ class Login extends Component
     {
         $this->validate();
 
+        $throttleKey = Str::transliterate(Str::lower($this->accessCode).'|'.request()->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $this->addError('accessCode', "Muitas tentativas de login. Tente novamente em {$seconds} segundos.");
+
+            return;
+        }
+
         $credenciais = [
             'codigo_operador' => strtoupper(trim($this->accessCode)),
-            'password' => $this->password, // o Laravel compara com a coluna "senha"
-            'ativo' => true,            // usuário desativado não entra
+            'password' => $this->password,
+            'ativo' => true,
         ];
 
         if (! Auth::attempt($credenciais, $this->remember)) {
+            RateLimiter::hit($throttleKey, 60);
             $this->addError('accessCode', 'Código de acesso ou senha inválidos.');
 
             return;
         }
+
+        RateLimiter::clear($throttleKey);
 
         session()->regenerate(); // pulseira nova, por segurança
 
