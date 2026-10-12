@@ -23,12 +23,12 @@ class JwtService
         $expirationTime = $currentTime + $ttl;
 
         $payload = [
-            'iss' => Config::get('app.url', 'http://localhost'),
-            'sub' => (string) $usuario->id,
-            'iat' => $currentTime,
-            'nbf' => $currentTime,
-            'exp' => $expirationTime,
-            'usuario' => [
+            'iss' => Config::get('app.url', 'http://localhost'), // Emissor do token
+            'sub' => (string) $usuario->id,                      // ID do usuário
+            'iat' => $currentTime,                               // Criado em
+            'nbf' => $currentTime,                               // Válido a partir de
+            'exp' => $expirationTime,                            // Expira em
+            'usuario' => [                                       // Dados extras do usuário
                 'id' => $usuario->id,
                 'nome' => $usuario->nome,
                 'email' => $usuario->email,

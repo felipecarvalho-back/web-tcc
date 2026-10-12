@@ -26,10 +26,14 @@ class Login extends Component
     {
         $this->validate();
 
-        $throttleKey = Str::transliterate(Str::lower($this->accessCode).'|'.request()->ip());
+        // Cria uma chave única com o código e o IP
+        $throttleKey = Str::transliterate(Str::lower($this->accessCode) . '|' . request()->ip());
 
+        // Se errou mais de 5 vezes:
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            // Pega quantos segundos faltam para liberar
             $seconds = RateLimiter::availableIn($throttleKey);
+            // Exibe o erro na tela
             $this->addError('accessCode', "Muitas tentativas de login. Tente novamente em {$seconds} segundos.");
 
             return;
@@ -59,7 +63,7 @@ class Login extends Component
                 ? $this->redirectRoute('admin.dashboard', navigate: true)
                 : $this->redirectRoute('portaria.monitoramento', navigate: true);
         } catch (Throwable $e) {
-            Log::error('Falha interna ao processar login: '.$e->getMessage(), [
+            Log::error('Falha interna ao processar login: ' . $e->getMessage(), [
                 'accessCode' => $this->accessCode,
                 'exception' => $e,
             ]);

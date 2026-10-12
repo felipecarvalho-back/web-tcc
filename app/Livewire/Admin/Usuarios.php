@@ -230,26 +230,26 @@ class Usuarios extends Component
     public function usuarios(): LengthAwarePaginator
     {
         return Usuario::query()
-            ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at'])
-            ->when(trim($this->search), function ($query, $term) {
+            ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at']) // Busca apenas as colunas necessárias
+            ->when(trim($this->search), function ($query, $term) { // Se digitou algo na busca:
                 $query->where(function ($q) use ($term) {
-                    $q->where('nome', 'like', "%{$term}%")
-                        ->orWhere('email', 'like', "%{$term}%")
-                        ->orWhere('cpf', 'like', "%{$term}%")
-                        ->orWhere('codigo_operador', 'like', "%{$term}%");
+                    $q->where('nome', 'like', "%{$term}%") // Busca por nome
+                        ->orWhere('email', 'like', "%{$term}%") // ...ou por email
+                        ->orWhere('cpf', 'like', "%{$term}%") // ...ou por CPF
+                        ->orWhere('codigo_operador', 'like', "%{$term}%"); // ...ou por código de operador
                 });
             })
-            ->when($this->perfilFilter !== 'todos', function ($query) {
-                $query->where('perfil', $this->perfilFilter);
+            ->when($this->perfilFilter !== 'todos', function ($query) { // Se escolheu um perfil específico:
+                $query->where('perfil', $this->perfilFilter); // Filtra pelo perfil
             })
-            ->when($this->statusFilter === 'ativo', function ($query) {
-                $query->where('ativo', true);
+            ->when($this->statusFilter === 'ativo', function ($query) { // Se o filtro for 'ativo':
+                $query->where('ativo', true); // Traz apenas ativos
             })
-            ->when($this->statusFilter === 'inativo', function ($query) {
-                $query->where('ativo', false);
+            ->when($this->statusFilter === 'inativo', function ($query) { // Se o filtro for 'inativo':
+                $query->where('ativo', false); // Traz apenas inativos
             })
-            ->orderByDesc('id')
-            ->paginate(10);
+            ->orderByDesc('id') // Mais recentes primeiro (ID decrescente)
+            ->paginate(10); // Divide em páginas de 10 em 10
     }
 
     private function triggerToast(string $message, string $type = 'success'): void
