@@ -29,7 +29,7 @@
 
     <!-- SIDEBAR PERSISTENTE / GAVETA MOBILE -->
     <aside
-        class="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-surface-container-lowest border-r border-surface-container shadow-2xl md:shadow-xs flex flex-col justify-between transition-transform duration-300 ease-in-out md:translate-x-0 no-print"
+        class="fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-surface-container-lowest border-r border-surface-container shadow-2xl md:shadow-xs flex flex-col justify-between transition-transform duration-300 ease-in-out md:translate-x-0 no-print"
         :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
         <div class="p-4 flex flex-col gap-5 overflow-y-auto">
             <!-- Brand & Identidade -->
