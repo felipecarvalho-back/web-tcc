@@ -46,7 +46,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $codigo = trim((string) $codigo);
+        $codigo = strtoupper(trim((string) $codigo));
 
         // Busca o usuário por codigo_operador
         $usuario = Usuario::select('id', 'nome', 'codigo_operador', 'email', 'senha', 'ativo', 'perfil')

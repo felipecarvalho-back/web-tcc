@@ -135,7 +135,21 @@ class Usuarios extends Component
             $rules['senha'] = 'min:6|confirmed';
         }
 
-        $this->validate($rules);
+        $messages = [
+            'nome.required' => 'O nome do usuário é obrigatório.',
+            'nome.min' => 'O nome deve ter pelo menos 3 caracteres.',
+            'cpf.required' => 'Informe o CPF do operador.',
+            'cpf.unique' => 'Este CPF já está cadastrado para outro operador no sistema.',
+            'email.required' => 'Informe o e-mail de acesso.',
+            'email.email' => 'Informe um formato de e-mail válido.',
+            'email.unique' => 'Este e-mail já está sendo utilizado.',
+            'perfil.required' => 'Selecione o perfil de acesso.',
+            'senha.required' => 'Defina uma senha de acesso.',
+            'senha.min' => 'A senha deve possuir pelo menos 6 caracteres.',
+            'senha.confirmed' => 'A confirmação de senha não confere.',
+        ];
+
+        $this->validate($rules, $messages);
 
         if ($this->editingId === null) {
             $user = Usuario::create([

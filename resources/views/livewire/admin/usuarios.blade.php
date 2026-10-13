@@ -149,7 +149,7 @@
                         <th class="py-2.5 px-4">Código de Acesso</th>
                         <th class="py-2.5 px-4">Perfil</th>
                         <th class="py-2.5 px-4">Status</th>
-                        <th class="py-2.5 px-4">Data Cadastro</th>
+                        <th class="py-2.5 px-4 hidden sm:table-cell">Data Cadastro</th>
                         <th class="py-2.5 px-4 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -220,7 +220,7 @@
                             </td>
 
                             <!-- Data Cadastro -->
-                            <td class="py-3 px-4 text-on-surface-variant font-mono">
+                            <td class="py-3 px-4 text-on-surface-variant font-mono hidden sm:table-cell">
                                 {{ $user->created_at?->format('d/m/Y') }}
                             </td>
 
