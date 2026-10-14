@@ -12,9 +12,9 @@ class CloudinaryService
      */
     public function isConfigured(): bool
     {
-        $cloudName = config('services.cloudinary.cloud_name') ?? env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = config('services.cloudinary.api_key') ?? env('CLOUDINARY_API_KEY');
-        $apiSecret = config('services.cloudinary.api_secret') ?? env('CLOUDINARY_API_SECRET');
+        $cloudName = config('services.cloudinary.cloud_name');
+        $apiKey = config('services.cloudinary.api_key');
+        $apiSecret = config('services.cloudinary.api_secret');
 
         return ! empty($cloudName) && ! empty($apiKey) && ! empty($apiSecret);
     }
@@ -29,9 +29,9 @@ class CloudinaryService
             return null;
         }
 
-        $cloudName = config('services.cloudinary.cloud_name') ?? env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = config('services.cloudinary.api_key') ?? env('CLOUDINARY_API_KEY');
-        $apiSecret = config('services.cloudinary.api_secret') ?? env('CLOUDINARY_API_SECRET');
+        $cloudName = config('services.cloudinary.cloud_name');
+        $apiKey = config('services.cloudinary.api_key');
+        $apiSecret = config('services.cloudinary.api_secret');
 
         try {
             $timestamp = time();
@@ -42,7 +42,11 @@ class CloudinaryService
 
             ksort($params);
 
-            $signatureString = http_build_query($params, '', '&').$apiSecret;
+            $signatureParts = [];
+            foreach ($params as $paramKey => $paramValue) {
+                $signatureParts[] = "{$paramKey}={$paramValue}";
+            }
+            $signatureString = implode('&', $signatureParts).$apiSecret;
             $signature = sha1($signatureString);
 
             $filename = $nomeArquivo ?? basename($caminhoArquivo);
