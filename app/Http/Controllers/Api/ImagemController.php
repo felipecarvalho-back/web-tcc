@@ -37,7 +37,7 @@ class ImagemController extends Controller
         $caminho = $arquivo->storeAs('perfis', $nomeArquivo, 'public');
 
         // 5. Gerar a URL pública para salvar no banco ou retornar na API
-        $urlPublica = Storage::disk('public')->url($caminho);
+        $urlPublica = Storage::url($caminho);
 
         return response()->json([
             'mensagem' => 'Imagem enviada com sucesso!',
