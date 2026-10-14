@@ -38,22 +38,35 @@ class ImagemController extends Controller
         // 3. Montar nome único seguro para evitar sobrescrita simultânea
         $nomeArquivo = 'placa-'.time().'-'.Str::random(8).'.'.$extensao;
 
-        // 4. Salvar localmente no storage público
+        // 4. Se as variáveis de ambiente do Cloudinary estiverem configuradas, envia para a nuvem
+        if ($this->cloudinaryService->isConfigured()) {
+            $urlNuvem = $this->cloudinaryService->upload(
+                $arquivo->getRealPath(),
+                $nomeArquivo,
+                'sentinela/placas'
+            );
+
+            if ($urlNuvem) {
+                return response()->json([
+                    'mensagem' => 'Imagem enviada com sucesso para a nuvem!',
+                    'nome' => $nomeArquivo,
+                    'caminho' => 'sentinela/placas/'.$nomeArquivo,
+                    'url' => $urlNuvem,
+                    'armazenamento' => 'cloudinary',
+                ], 201);
+            }
+        }
+
+        // 5. Caso não tenha as variáveis (ou falhe a nuvem), salva localmente no storage público
         $caminho = $arquivo->storeAs('perfis', $nomeArquivo, 'public');
-        $caminhoCompleto = Storage::disk('public')->path($caminho);
-
-        // 5. Se o Cloudinary estiver configurado, envia para a nuvem permanente
-        $urlNuvem = $this->cloudinaryService->upload($caminhoCompleto, 'sentinela/placas');
-
-        // Se enviou para o Cloudinary, usa a URL permanente; caso contrário, usa o storage local
-        $urlFinal = $urlNuvem ?? Storage::url($caminho);
+        $urlFinal = Storage::url($caminho);
 
         return response()->json([
-            'mensagem' => 'Imagem enviada com sucesso!',
+            'mensagem' => 'Imagem salva com sucesso localmente!',
             'nome' => $nomeArquivo,
             'caminho' => $caminho,
             'url' => $urlFinal,
-            'armazenamento' => $urlNuvem ? 'cloudinary' : 'local',
+            'armazenamento' => 'local',
         ], 201);
     }
 }
