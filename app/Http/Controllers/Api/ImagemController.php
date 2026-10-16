@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\RegistroAcesso;
 use App\Services\CloudinaryService;
+use App\Services\PlacaOcrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
@@ -13,7 +16,8 @@ use Illuminate\Validation\Rules\File;
 class ImagemController extends Controller
 {
     public function __construct(
-        protected CloudinaryService $cloudinaryService
+        protected CloudinaryService $cloudinaryService,
+        protected PlacaOcrService $placaOcrService
     ) {}
 
     public function enviar(Request $request): JsonResponse
@@ -31,42 +35,67 @@ class ImagemController extends Controller
         ]);
 
         $arquivo = $request->file('foto');
-
-        // 2. Descobrir a extensão segura do arquivo (retorna 'png' ou 'jpg')
         $extensao = $arquivo->extension();
-
-        // 3. Montar nome único seguro para evitar sobrescrita simultânea
         $nomeArquivo = 'placa-'.time().'-'.Str::random(8).'.'.$extensao;
+        $caminhoTemporario = $arquivo->getRealPath();
 
-        // 4. Se as variáveis de ambiente do Cloudinary estiverem configuradas, envia para a nuvem
+        // 2. Envia a imagem para a API em Python para detecção da placa via OCR
+        $placaDetectada = $this->placaOcrService->detectarPlaca($caminhoTemporario, $nomeArquivo);
+        $placaFormatada = $this->placaOcrService->formatarPlaca($placaDetectada);
+
+        // 3. Armazena a imagem (na nuvem se configurado, ou localmente como fallback)
+        $urlFinal = null;
+        $caminho = null;
+        $armazenamento = 'local';
+
         if ($this->cloudinaryService->isConfigured()) {
             $urlNuvem = $this->cloudinaryService->upload(
-                $arquivo->getRealPath(),
+                $caminhoTemporario,
                 $nomeArquivo,
                 'sentinela/placas'
             );
 
             if ($urlNuvem) {
-                return response()->json([
-                    'mensagem' => 'Imagem enviada com sucesso para a nuvem!',
-                    'nome' => $nomeArquivo,
-                    'caminho' => 'sentinela/placas/'.$nomeArquivo,
-                    'url' => $urlNuvem,
-                    'armazenamento' => 'cloudinary',
-                ], 201);
+                $urlFinal = $urlNuvem;
+                $caminho = 'sentinela/placas/'.$nomeArquivo;
+                $armazenamento = 'cloudinary';
             }
         }
 
-        // 5. Caso não tenha as variáveis (ou falhe a nuvem), salva localmente no storage público
-        $caminho = $arquivo->storeAs('perfis', $nomeArquivo, 'public');
-        $urlFinal = Storage::url($caminho);
+        if (! $urlFinal) {
+            $caminho = $arquivo->storeAs('perfis', $nomeArquivo, 'public');
+            $urlFinal = Storage::url($caminho);
+            $armazenamento = 'local';
+        }
+
+        // 4. Registra a passagem na tabela registros_acesso (sem condutor e veículo no momento)
+        $registro = RegistroAcesso::create([
+            'veiculo_id' => null,
+            'condutor_id' => null,
+            'tipo_ocupante' => 'condutor',
+            'placa_registro' => $placaFormatada,
+            'cancela' => $request->input('cancela', 'Cancela 01 (Principal)'),
+            'data_hora_entrada' => Carbon::now(),
+            'operador_id' => $request->user()?->id,
+            'foto_entrada_path' => $urlFinal,
+            'placa_corrigida' => null,
+            'status' => $placaDetectada ? 'pendente' : 'nao_cadastrado',
+            'justificativa' => $placaDetectada
+                ? 'Placa identificada via OCR'
+                : 'Placa não identificada automaticamente pelo OCR',
+        ]);
 
         return response()->json([
-            'mensagem' => 'Imagem salva com sucesso localmente!',
+            'mensagem' => $armazenamento === 'cloudinary'
+                ? 'Imagem enviada com sucesso para a nuvem!'
+                : 'Imagem salva com sucesso localmente!',
             'nome' => $nomeArquivo,
             'caminho' => $caminho,
             'url' => $urlFinal,
-            'armazenamento' => 'local',
+            'armazenamento' => $armazenamento,
+            'placa' => $placaFormatada,
+            'placa_identificada' => $placaDetectada !== null,
+            'registro_id' => $registro->id,
         ], 201);
     }
 }

@@ -41,4 +41,9 @@ return [
         'api_secret' => env('CLOUDINARY_API_SECRET'),
     ],
 
+    'python_api' => [
+        'url' => env('API_URL_PYTHON', 'http://127.0.0.1:5000'),
+        'token' => env('API_TOKEN_PYTHON'),
+    ],
+
 ];
