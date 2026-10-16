@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div wire:poll.5s.visible class="flex flex-col gap-6">
     <!-- TOAST NOTIFICATION -->
     <x-toast :message="$toastMessage" :type="$toastType" />
 
@@ -19,19 +19,6 @@
             <p class="text-sm text-on-surface-variant">
                 Monitoramento de leituras de placa em tempo real com liberação de cancela e contingência manual.
             </p>
-        </div>
-
-        <!-- Botão de Simulação em Tempo Real -->
-        <div class="flex items-center gap-3 self-start lg:self-auto">
-            <button 
-                type="button" 
-                wire:click="simulateNewCapture"
-                class="px-4 py-2.5 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                title="Simular passagem capturada pelo app móvel"
-            >
-                <span class="material-symbols-outlined text-[16px]">sensors</span>
-                <span>Simular Captura de Placa</span>
-            </button>
         </div>
     </div>
 
@@ -90,9 +77,9 @@
                 <label class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Buscar por Placa</label>
                 <div class="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-xl border border-surface-container text-on-surface">
                     <span class="material-symbols-outlined text-[18px] text-on-surface-variant">search</span>
-                    <input 
-                        wire:model.live.debounce.300ms="filterPlate" 
-                        type="text" 
+                    <input
+                        wire:model.live.debounce.300ms="filterPlate"
+                        type="text"
                         placeholder="Ex: BRA, ABC..."
                         class="bg-transparent w-full text-xs font-semibold outline-none uppercase placeholder:normal-case placeholder:text-on-surface-variant/70"
                     />
@@ -131,8 +118,8 @@
 
         <!-- Botão Limpar Filtros -->
         <div class="flex items-end">
-            <button 
-                type="button" 
+            <button
+                type="button"
                 wire:click="$set('filterPlate', ''); $set('filterCategory', 'todos'); $set('filterStatus', 'todos');"
                 class="h-10 px-4 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full xl:w-auto"
             >
@@ -143,7 +130,7 @@
     </div>
 
     <!-- LISTA DE ENTRADA DE VEÍCULOS (ATUALIZAÇÃO AUTOMÁTICA) -->
-    <div wire:poll.5s class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
+    <div class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
         <!-- Barra de Cabeçalho da Tabela -->
         <div class="p-4 bg-surface-container-low border-b border-surface-container flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2.5">
@@ -151,10 +138,6 @@
                 <h2 class="text-base font-bold text-on-surface">Fila da Cancela 01 (Entrada Principal)</h2>
                 <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Ao Vivo</span>
             </div>
-            <span class="text-xs text-on-surface-variant flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Atualização automática a cada 5s (Livewire Polling)</span>
-            </span>
         </div>
 
         <!-- Tabela Responsiva -->
@@ -176,9 +159,11 @@
                             <!-- Captura Mobile -->
                             <td class="py-3 px-4">
                                 <div class="relative group w-24 h-14 rounded-lg overflow-hidden bg-surface-container-high border border-surface-container shadow-xs cursor-pointer">
-                                    <img 
-                                        src="{{ $record['image_url'] }}" 
-                                        alt="Captura {{ $record['plate'] }}" 
+                                    <img
+                                        src="{{ $record['image_url'] }}"
+                                        alt="Captura {{ $record['plate'] }}"
+                                        loading="lazy"
+                                        decoding="async"
                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                     />
                                     <span class="absolute bottom-1 right-1 px-1 rounded bg-black/70 text-white text-[9px] font-mono leading-tight">
@@ -242,8 +227,8 @@
                                 <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                     @if ($record['status'] === 'autorizado')
                                         <!-- Carro Identificado: Confirmar Condutor cadastrado via código de acesso -->
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             wire:click="openDriverConfirmationModal({{ $record['id'] }})"
                                             class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                                             title="Confirmar se o motorista é o condutor cadastrado via código de acesso"
@@ -253,8 +238,8 @@
                                         </button>
 
                                         <!-- Marcar Saída -->
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             wire:click="markExit({{ $record['id'] }})"
                                             class="h-8 px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                                             title="Registrar saída do veículo"
@@ -264,8 +249,8 @@
                                         </button>
                                     @else
                                         <!-- Placa NÃO Identificada / Com Erro / Não Cadastrada: Botão Único de Dupla Verificação -->
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             wire:click="openVerificationModal({{ $record['id'] }})"
                                             class="h-8 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                                             title="Dupla verificação: corrigir leitura da placa ou validar código do motorista"

@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Portaria;
 
+use App\Models\RegistroAcesso;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -24,6 +27,9 @@ class Monitoramento extends Component
 
     public bool $showDriverConfirmationModal = false;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     public ?array $selectedRecord = null;
 
     // Campos da Dupla Verificação (Placa não identificada / Não cadastrada)
@@ -50,88 +56,165 @@ class Monitoramento extends Component
 
     public string $toastType = 'success';
 
-    /**
-     * Registros de passagens de veículos na guarita.
-     *
-     * @var array<int, array<string, mixed>>
-     */
-    public array $records = [];
-
     // Indicadores do topo da tela
-    public int $totalPassages = 412;
+    public int $totalPassages = 0;
 
-    public int $automaticPassages = 389;
+    public int $automaticPassages = 0;
 
-    public int $manualCorrections = 17;
+    public int $manualCorrections = 0;
 
-    public function mount(): void
+    /**
+     * Atualiza os 3 indicadores do topo em uma única query SQL otimizada.
+     */
+    private function loadMetrics(): void
     {
-        // TODO [Backend]:
-        // Substituir esta lista inicial de demonstração por uma consulta Eloquent:
-        // Exemplo:
-        // $this->records = RegistroAcesso::with(['veiculo.condutor'])
-        //     ->whereDate('data_hora_entrada', today())
-        //     ->latest('data_hora_entrada')
-        //     ->take(20)
-        //     ->get()
-        //     ->toArray();
-        $this->records = [
-            [
-                'id' => 1084,
-                'plate' => 'BRA-2819',
-                'raw_ocr' => 'BRA-2819',
-                'driver_name' => 'Possível Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM (Desenvolvimento de Software)',
-                'registered_at' => '14:32:05',
-                'time_ago' => 'Há 3 minutos',
-                'status' => 'pendente',
-                'status_label' => 'Aguardando Liberação',
-                'image_url' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwm07qkZIJd-rbpEzJBASevnBBdTcqc7Br___et9oQw4CM_S4fITpgE-g2TgcBm9gllhPwl2I3jgKriISCCqhE479dLHJZNh923e02v2Pca-I29JvSJVGmD84ofuwRf3RFt3GPCGneh7kCVritsK654A3EG2w8930I68dlRtbh3ezUhLlPr5-xs1H7rV4KVqp7e4h-89Tu9giFBQO-cAhi5ao4XhOauIJuYF3BSTIIcFgao8jmzA_-',
-                'is_registered' => false,
-            ],
-            [
-                'id' => 1083,
-                'plate' => 'ABC-1234',
-                'raw_ocr' => 'ABC-1234',
-                'driver_name' => 'Carlos Silva',
-                'category' => 'prestador',
-                'category_label' => 'Manutenção Predial (Prestador de Serviço) • Tag Ativa',
-                'registered_at' => '14:28:40',
-                'time_ago' => 'Há 6 minutos',
-                'status' => 'autorizado',
-                'status_label' => 'Autorizado',
-                'image_url' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuDAubQZwTAIxcX5dVzVCdSpZ43moQ0KgfBfG_ocPvPKtuygXT0dM8Z2gmiWo_XcLhYgxmZq0pv0vnyPEtAOpACViX7civEu2_2Zo79hcY7jFBjDlYp9NGX2APBvvPZ_1a4dikxSNJx3caBqkO2XuDusqQ6e8rGEzu3ofu-HTSFVpu7NUirJiOhK6gzU0M6tkoN6hvrwfej1Qkxr4Mn-1uLfV7RoOTsldOAYoOqoYm4EkDirMMaeyD4g',
-                'is_registered' => true,
-            ],
-            [
-                'id' => 1082,
-                'plate' => 'FKX-9A42',
-                'raw_ocr' => 'FKX-9A42',
-                'driver_name' => 'Veículo Não Cadastrado',
-                'category' => 'visitante',
-                'category_label' => 'Motocicleta Entregador / Visitante Eventual',
-                'registered_at' => '14:21:12',
-                'time_ago' => 'Há 13 minutos',
-                'status' => 'nao_cadastrado',
-                'status_label' => 'Não Cadastrado',
-                'image_url' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_UZgErWBuOuiVNK2ZREnBJK82IyqrYm1jzqm2EDVrPN1uyUsRsxWnFnUFDLij9AOdskteOXpFQcakcJ4XVDGKfIyDcfvLiJBNSmpncuzwEG3h95ym_0ArMlRNQnN9eIx5C1FklPjMx5gc36xgMYoiDgsyXj10LzONMJLCKzeoYiVIkVqa92xlAJekXC12q5652tAYQQk53eCxlDIIXeZkFFWogS_tsDW2sZNRsgW5wkJrH6OKR7rG',
-                'is_registered' => false,
-            ],
-            [
-                'id' => 1081,
-                'plate' => 'GTR-4C88',
-                'raw_ocr' => 'GTR-4C88',
-                'driver_name' => 'Profa. Dra. Juliana Rezende',
-                'category' => 'professor',
-                'category_label' => 'Docente GTI (Gestão de TI) • Vaga Docente Reservada',
-                'registered_at' => '14:14:02',
-                'time_ago' => 'Há 20 minutos',
-                'status' => 'autorizado',
-                'status_label' => 'Autorizado',
-                'image_url' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuCApIKZcczrExQtByFs0AuBB4oheMxnqtOqqG-lpkehXqm-D0VqOaGSCPpDJtQ3sgoryRnxOJGlXmr_dhAUjFi0Bvnc03XAd4M5eu3Oqx__ODYjYn9al6DPZgsnmEu9QOpEvI66b43KXmRJFoQbdLM8HhX_xvLCz6mnjU1LhNldBViLi66klsRE56iT5mlsMkzXJKHJmJVAjbhG-OIvemnHBU4ZHLwyNIkrZz4Lb90U7QpMVqcwzfPX',
-                'is_registered' => true,
-            ],
+        $inicioHoje = Carbon::today()->startOfDay();
+        $fimHoje = Carbon::today()->endOfDay();
+
+        $metricas = RegistroAcesso::query()
+            ->whereBetween('data_hora_entrada', [$inicioHoje, $fimHoje])
+            ->selectRaw('
+                COUNT(*) as total,
+                COALESCE(SUM(CASE WHEN placa_registro != ? AND placa_corrigida IS NULL THEN 1 ELSE 0 END), 0) as automaticas,
+                COALESCE(SUM(CASE WHEN placa_corrigida IS NOT NULL THEN 1 ELSE 0 END), 0) as manuais
+            ', ['SEM-PLACA'])
+            ->first();
+
+        $this->totalPassages = (int) ($metricas->total ?? 0);
+        $this->automaticPassages = (int) ($metricas->automaticas ?? 0);
+        $this->manualCorrections = (int) ($metricas->manuais ?? 0);
+    }
+
+    /**
+     * Consulta e formata os registros filtrados diretamente no banco de dados.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    #[Computed]
+    public function filteredRecords(): array
+    {
+        if ($this->filterCategory !== 'todos' && $this->filterCategory !== 'visitante') {
+            return [];
+        }
+
+        $query = RegistroAcesso::query()
+            ->select([
+                'id',
+                'veiculo_id',
+                'condutor_id',
+                'placa_registro',
+                'placa_corrigida',
+                'cancela',
+                'data_hora_entrada',
+                'data_hora_saida',
+                'operador_id',
+                'foto_entrada_path',
+                'status',
+                'justificativa',
+            ])
+            ->with(['operador:id,nome'])
+            ->latest('data_hora_entrada')
+            ->latest('id');
+
+        // 1. Filtro de Data usando intervalos compatíveis com índices B-Tree (PostgreSQL / MySQL)
+        match ($this->filterDate) {
+            'hoje' => $query->whereBetween('data_hora_entrada', [
+                Carbon::today()->startOfDay(),
+                Carbon::today()->endOfDay(),
+            ]),
+            'ontem' => $query->whereBetween('data_hora_entrada', [
+                Carbon::yesterday()->startOfDay(),
+                Carbon::yesterday()->endOfDay(),
+            ]),
+            '7dias' => $query->where('data_hora_entrada', '>=', Carbon::today()->subDays(7)->startOfDay()),
+            'mes' => $query->whereBetween('data_hora_entrada', [
+                Carbon::now()->startOfMonth(),
+                Carbon::now()->endOfMonth(),
+            ]),
+            default => null,
+        };
+
+        // 2. Filtro por Placa direto no SQL (whereLike usa ILIKE no PostgreSQL e LIKE no MySQL)
+        $buscaPlaca = strtoupper(trim($this->filterPlate));
+        if ($buscaPlaca !== '') {
+            $buscaSemHifen = str_replace('-', '', $buscaPlaca);
+            $query->where(function (Builder $q) use ($buscaPlaca, $buscaSemHifen) {
+                $q->whereLike('placa_registro', "%{$buscaPlaca}%")
+                    ->orWhereLike('placa_corrigida', "%{$buscaPlaca}%")
+                    ->orWhereLike('placa_registro', "%{$buscaSemHifen}%");
+            });
+        }
+
+        // 3. Filtro por Status direto no SQL
+        match ($this->filterStatus) {
+            'pendente' => $query->where('status', 'pendente')->whereNull('data_hora_saida'),
+            'autorizado' => $query->whereIn('status', ['autorizado', 'em_patio', 'liberado_manual'])->whereNull('data_hora_saida'),
+            'nao_cadastrado' => $query->whereIn('status', ['nao_cadastrado', 'bloqueado'])->whereNull('data_hora_saida'),
+            'saida' => $query->where(function (Builder $q) {
+                $q->where('status', 'finalizado')->orWhereNotNull('data_hora_saida');
+            }),
+            default => null,
+        };
+
+        return $query
+            ->limit(50)
+            ->get()
+            ->map(fn (RegistroAcesso $registro): array => $this->formatRecord($registro))
+            ->all();
+    }
+
+    /**
+     * Formata uma instância de RegistroAcesso para a estrutura esperada pela view.
+     *
+     * @return array<string, mixed>
+     */
+    private function formatRecord(RegistroAcesso $registro): array
+    {
+        $placaExibida = $registro->placa_corrigida ?: $registro->placa_registro;
+
+        $statusView = match (true) {
+            $registro->data_hora_saida !== null || $registro->status === 'finalizado' => 'saida',
+            in_array($registro->status, ['autorizado', 'em_patio', 'liberado_manual'], true) => 'autorizado',
+            in_array($registro->status, ['nao_cadastrado', 'bloqueado'], true) => 'nao_cadastrado',
+            default => 'pendente',
+        };
+
+        $statusLabel = match (true) {
+            $registro->data_hora_saida !== null || $registro->status === 'finalizado' => 'Saída Registrada',
+            $registro->status === 'liberado_manual' && ! empty($registro->placa_corrigida) => 'Autorizado (Placa Corrigida)',
+            $registro->status === 'liberado_manual' => 'Liberado Manualmente',
+            in_array($registro->status, ['autorizado', 'em_patio'], true) => 'Autorizado',
+            $registro->status === 'bloqueado' => 'Bloqueado',
+            $registro->status === 'nao_cadastrado' && $registro->placa_registro === 'SEM-PLACA' => 'Placa Não Identificada',
+            $registro->status === 'nao_cadastrado' => 'Não Cadastrado',
+            default => 'Aguardando Liberação',
+        };
+
+        $driverName = ($registro->placa_registro === 'SEM-PLACA' && empty($registro->placa_corrigida))
+            ? 'Placa Não Identificada'
+            : 'Condutor Não Vinculado';
+
+        $detalhes = [$registro->cancela];
+        if ($registro->operador) {
+            $detalhes[] = 'Operador: '.$registro->operador->nome;
+        }
+        if ($registro->justificativa) {
+            $detalhes[] = $registro->justificativa;
+        }
+
+        return [
+            'id' => $registro->id,
+            'plate' => $placaExibida,
+            'raw_ocr' => $registro->placa_registro,
+            'driver_name' => $driverName,
+            'category' => 'visitante',
+            'category_label' => implode(' • ', $detalhes),
+            'registered_at' => $registro->data_hora_entrada?->format('H:i:s') ?? '--:--:--',
+            'time_ago' => $registro->data_hora_entrada?->locale('pt_BR')->diffForHumans() ?? 'Agora mesmo',
+            'status' => $statusView,
+            'status_label' => $statusLabel,
+            'image_url' => $registro->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
+            'is_registered' => (bool) $registro->veiculo_id,
         ];
     }
 
@@ -177,19 +260,19 @@ class Monitoramento extends Component
      */
     public function openVerificationModal(int $id): void
     {
-        foreach ($this->records as $record) {
-            if ($record['id'] === $id) {
-                $this->selectedRecord = $record;
-                $this->correctedPlate = $record['plate'];
-                $this->driverAccessCode = '';
-                $this->justification = 'Correção manual de leitura OCR';
-                $this->passengers = [];
-                $this->newPassengerCode = '';
-                $this->showVerificationModal = true;
-
-                return;
-            }
+        $registro = RegistroAcesso::with(['operador:id,nome'])->find($id);
+        if (! $registro) {
+            return;
         }
+
+        $record = $this->formatRecord($registro);
+        $this->selectedRecord = $record;
+        $this->correctedPlate = $record['plate'] === 'SEM-PLACA' ? '' : $record['plate'];
+        $this->driverAccessCode = '';
+        $this->justification = 'Correção manual de leitura OCR';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->showVerificationModal = true;
     }
 
     /**
@@ -215,52 +298,29 @@ class Monitoramento extends Component
         }
 
         $targetId = $this->selectedRecord['id'];
+        $registro = RegistroAcesso::find($targetId);
 
-        // TODO [Backend]:
-        // 1. Se $this->correctedPlate foi preenchida diferente do original:
-        //    Buscar se a nova placa existe no banco: Veiculo::where('placa', $this->correctedPlate)->first();
-        // 2. Se $this->driverAccessCode foi informado:
-        //    Buscar o condutor (Professor/Funcionário) que possui esse código de acesso.
-        // 3. Criar ou atualizar o registro de acesso do CONDUTOR em RegistroAcesso:
-        //    - tipo_ocupante: 'condutor'
-        //    - tipo_liberacao: 'manual_porteiro'
-        //    - motivo: $this->justification
-        //    - usuario_id: auth()->id() (porteiro logado)
-        // 4. Se houver caronas ($this->passengers):
-        //    Para cada código em $this->passengers:
-        //    - Buscar o Condutor pelo codigo_acesso.
-        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
-        //      e passagem_origem_id apontando para o registro do condutor.
-        // 5. Enviar pulso de acionamento para a cancela eletrônica via API/Hardware.
+        if ($registro) {
+            $novaPlaca = strtoupper(trim($this->correctedPlate));
+            $placaOriginal = $registro->placa_registro;
 
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $targetId) {
-                if (! empty(trim($this->driverAccessCode))) {
-                    $code = strtoupper(trim($this->driverAccessCode));
-                    $record['status'] = 'autorizado';
-                    $record['status_label'] = 'Liberado por Código';
-                    $record['driver_name'] = "Condutor Validado ({$code})";
-                } elseif (! empty(trim($this->correctedPlate))) {
-                    $record['plate'] = strtoupper(trim($this->correctedPlate));
-                    $record['status'] = 'autorizado';
-                    $record['status_label'] = 'Autorizado (Placa Corrigida)';
-                    $this->manualCorrections++;
-                } else {
-                    $record['status'] = 'autorizado';
-                    $record['status_label'] = 'Liberado Manualmente';
-                }
-                break;
+            if ($novaPlaca !== '' && $novaPlaca !== $placaOriginal) {
+                $registro->placa_corrigida = substr($novaPlaca, 0, 10);
             }
+
+            $registro->status = 'liberado_manual';
+            $registro->justificativa = $this->justification;
+            $registro->save();
         }
 
         $passengerCount = count($this->passengers);
         $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
 
-        $this->totalPassages += (1 + $passengerCount);
         $this->showVerificationModal = false;
         $this->selectedRecord = null;
         $this->passengers = [];
         $this->newPassengerCode = '';
+        unset($this->filteredRecords);
         $this->triggerToast("Acesso validado e cancela liberada{$passengerNote}!", 'success');
     }
 
@@ -269,17 +329,16 @@ class Monitoramento extends Component
      */
     public function openDriverConfirmationModal(int $id): void
     {
-        foreach ($this->records as $record) {
-            if ($record['id'] === $id) {
-                $this->selectedRecord = $record;
-                $this->confirmDriverCode = '';
-                $this->passengers = [];
-                $this->newPassengerCode = '';
-                $this->showDriverConfirmationModal = true;
-
-                return;
-            }
+        $registro = RegistroAcesso::with(['operador:id,nome'])->find($id);
+        if (! $registro) {
+            return;
         }
+
+        $this->selectedRecord = $this->formatRecord($registro);
+        $this->confirmDriverCode = '';
+        $this->passengers = [];
+        $this->newPassengerCode = '';
+        $this->showDriverConfirmationModal = true;
     }
 
     /**
@@ -304,36 +363,16 @@ class Monitoramento extends Component
         }
 
         $targetId = $this->selectedRecord['id'];
-
-        // TODO [Backend]:
-        // 1. Validar se $this->confirmDriverCode confere com o condutor associado ao veículo no banco:
-        //    $veiculo = Veiculo::with('condutor')->where('placa', $this->selectedRecord['plate'])->first();
-        //    Verificar se o código de acesso pertence ao condutor retornado.
-        // 2. Se condutor divergente:
-        //    Registrar alerta/evento de condutor divergente para auditoria.
-        // 3. Registrar entrada do condutor principal em RegistroAcesso (tipo_ocupante = 'condutor').
-        // 4. Se houver caronas ($this->passengers):
-        //    Para cada código em $this->passengers:
-        //    - Buscar o Condutor pelo codigo_acesso.
-        //    - Criar registro em RegistroAcesso com tipo_ocupante = 'passageiro'
-        //      e passagem_origem_id vinculando à mesma passagem do veículo.
-        // 5. Acionar a abertura da cancela via hardware/API.
-
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $targetId) {
-                $record['status_label'] = 'Condutor Confirmado';
-                break;
-            }
-        }
+        RegistroAcesso::whereKey($targetId)->update(['status' => 'autorizado']);
 
         $passengerCount = count($this->passengers);
         $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
 
-        $this->totalPassages += $passengerCount;
         $this->showDriverConfirmationModal = false;
         $this->selectedRecord = null;
         $this->passengers = [];
         $this->newPassengerCode = '';
+        unset($this->filteredRecords);
         $this->triggerToast("Identidade do condutor confirmada{$passengerNote}! Cancela liberada.", 'success');
     }
 
@@ -342,46 +381,17 @@ class Monitoramento extends Component
      */
     public function markExit(int $id): void
     {
-        // TODO [Backend]:
-        // 1. Atualizar o registro correspondente em RegistroAcesso:
-        //    data_hora_saida = now()
-        // 2. Enviar comando de liberação para a cancela de saída.
+        $registro = RegistroAcesso::find($id);
 
-        foreach ($this->records as &$record) {
-            if ($record['id'] === $id) {
-                $record['status'] = 'saida';
-                $record['status_label'] = 'Saída Registrada';
-                $this->triggerToast("Saída registrada para o veículo {$record['plate']}!", 'info');
-                break;
-            }
+        if ($registro) {
+            $registro->data_hora_saida = Carbon::now();
+            $registro->status = 'finalizado';
+            $registro->save();
+
+            $placa = $registro->placa_corrigida ?: $registro->placa_registro;
+            unset($this->filteredRecords);
+            $this->triggerToast("Saída registrada para o veículo {$placa}!", 'info');
         }
-    }
-
-    /**
-     * Simula a chegada e captura de um novo veículo pela câmera OCR.
-     */
-    public function simulateNewCapture(): void
-    {
-        $newId = count($this->records) + 1085;
-        $newRecord = [
-            'id' => $newId,
-            'plate' => 'FTC-'.rand(1000, 9999),
-            'raw_ocr' => 'FTC-'.rand(1000, 9999),
-            'driver_name' => 'Prof. Dr. Ricardo Alencar',
-            'category' => 'professor',
-            'category_label' => 'Docente ADS • Vaga Reservada',
-            'registered_at' => date('H:i:s'),
-            'time_ago' => 'Agora mesmo',
-            'status' => 'autorizado',
-            'status_label' => 'Autorizado',
-            'image_url' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuAbf2RHooVfcHdtDDW2DVRHqWC1MkeGE1em40bZklihlVeby_dmWboB5Zt-qVbgC0OWQIfhr0NRwLWUAkQP63gi49ZkFN_Pdc5HgLor36CbPwgDiKHkUQYc7n4fgy4jn_Tv4tEmb_pk9sVy9pZznHLYEwVDJVo24Zxhvd1B5GVrwHbBeAmN3yhQrNUwfdkWq9sRpJZBiQesH-Db2hZpuhLkxUU2OooXsLDMImMIZKSOJAoxqjacCTFd',
-            'is_registered' => true,
-        ];
-
-        array_unshift($this->records, $newRecord);
-        $this->totalPassages++;
-        $this->automaticPassages++;
-        $this->triggerToast('Novo veículo identificado pela câmera da guarita!', 'success');
     }
 
     private function triggerToast(string $message, string $type = 'success'): void
@@ -395,26 +405,10 @@ class Monitoramento extends Component
         $this->toastMessage = '';
     }
 
-    #[Computed]
-    public function filteredRecords(): array
-    {
-        return array_filter($this->records, function ($record) {
-            if ($this->filterPlate && stripos($record['plate'], trim($this->filterPlate)) === false) {
-                return false;
-            }
-            if ($this->filterCategory !== 'todos' && $record['category'] !== $this->filterCategory) {
-                return false;
-            }
-            if ($this->filterStatus !== 'todos' && $record['status'] !== $this->filterStatus) {
-                return false;
-            }
-
-            return true;
-        });
-    }
-
     public function render()
     {
+        $this->loadMetrics();
+
         return view('livewire.portaria.monitoramento', [
             'filteredRecords' => $this->filteredRecords,
         ]);
