@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Usuario;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,9 @@ class AdminIsValid
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Auth::check() || Auth::user()->perfil !== 'admin') {
+        $usuario = Auth::user();
+
+        if (! $usuario instanceof Usuario || ! $usuario->isAdmin()) {
             abort(403, 'Acesso não autorizado ao painel administrativo.');
         }
 

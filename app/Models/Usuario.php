@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\PerfilUsuario;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,8 +20,6 @@ class Usuario extends Authenticatable
 
     protected $table = 'usuarios';
 
-    protected $appends = ['data_criacao'];
-
     protected $fillable = [
         'nome',
         'cpf',
@@ -29,13 +29,6 @@ class Usuario extends Authenticatable
         'codigo_operador',
         'ativo',
     ];
-
-    protected function dataCriacao(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->created_at?->format('d/m/Y'),
-        );
-    }
 
     protected $hidden = [
         'senha',
@@ -52,6 +45,13 @@ class Usuario extends Authenticatable
         ];
     }
 
+    protected function dataCriacao(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->created_at?->format('d/m/Y'),
+        );
+    }
+
     public function getAuthPasswordName(): string
     {
         return 'senha';
@@ -63,7 +63,23 @@ class Usuario extends Authenticatable
     }
 
     /**
-     * Iniciais do nome do usuário para avatar
+     * Verifica se o usuário possui perfil de administrador.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->perfil === PerfilUsuario::Admin->value;
+    }
+
+    /**
+     * Verifica se o usuário possui permissão para operar a portaria/guarita.
+     */
+    public function canAccessPortaria(): bool
+    {
+        return in_array($this->perfil, PerfilUsuario::portariaValues(), true);
+    }
+
+    /**
+     * Iniciais do nome do usuário para avatar.
      */
     public function initials(): string
     {
@@ -76,26 +92,41 @@ class Usuario extends Authenticatable
     }
 
     /**
+     * Filtra a listagem de usuários por termo de busca (case-insensitive no PostgreSQL e MySQL), perfil e status.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeFiltrar(Builder $query, string $busca = '', string $perfil = 'todos', string $status = 'todos'): Builder
+    {
+        $termo = trim($busca);
+
+        return $query
+            ->when($termo !== '', function (Builder $q) use ($termo) {
+                $q->where(function (Builder $sub) use ($termo) {
+                    $sub->whereLike('nome', "%{$termo}%")
+                        ->orWhereLike('email', "%{$termo}%")
+                        ->orWhereLike('cpf', "%{$termo}%")
+                        ->orWhereLike('codigo_operador', "%{$termo}%");
+                });
+            })
+            ->when($perfil !== 'todos', fn (Builder $q) => $q->where('perfil', $perfil))
+            ->when($status === 'ativo', fn (Builder $q) => $q->where('ativo', true))
+            ->when($status === 'inativo', fn (Builder $q) => $q->where('ativo', false));
+    }
+
+    /**
      * Gera o próximo código sequencial de operador com base no perfil (ex: GDA-105, ADM-002, SUP-201).
      */
     public static function gerarProximoCodigo(string $perfil = 'operador'): string
     {
-        $prefixo = match ($perfil) {
-            'admin' => 'ADM',
-            'supervisor' => 'SUP',
-            default => 'GDA',
-        };
+        $perfilEnum = PerfilUsuario::tryFrom($perfil) ?? PerfilUsuario::Operador;
+        $prefixo = $perfilEnum->prefixoCodigo();
+        $maiorNumero = $perfilEnum->numeroInicial();
 
-        // Pega todos os códigos com o prefixo para encontrar confiavelmente o maior número
         $codigos = self::withTrashed()
             ->where('codigo_operador', 'like', "{$prefixo}-%")
             ->pluck('codigo_operador');
-
-        $maiorNumero = match ($prefixo) {
-            'ADM' => 0,
-            'SUP' => 200,
-            default => 100, // Inicia a partir de 100 para GDA (ex: GDA-101, GDA-102...)
-        };
 
         foreach ($codigos as $cod) {
             if (preg_match('/-(\d+)$/', (string) $cod, $matches)) {

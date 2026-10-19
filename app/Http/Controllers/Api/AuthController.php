@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UsuarioResource;
 use App\Models\Usuario;
 use App\Services\JwtService;
 use Illuminate\Http\JsonResponse;
@@ -21,11 +22,11 @@ class AuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        // Aceita 'codigo_operador'
-        $codigo = $request->input('codigo_operador');
+        // Aceita 'codigo_operador' ou 'codigo'
+        $codigo = $request->input('codigo_operador', $request->input('codigo'));
 
         // Aceita 'senha' ou 'password'
-        $senha = $request->input('senha');
+        $senha = $request->input('senha', $request->input('password'));
 
         $validator = Validator::make([
             'codigo' => $codigo,
@@ -49,11 +50,10 @@ class AuthController extends Controller
         $codigo = strtoupper(trim((string) $codigo));
 
         // Busca o usuário por codigo_operador
-        $usuario = Usuario::select('id', 'nome', 'codigo_operador', 'email', 'senha', 'ativo', 'perfil')
+        $usuario = Usuario::select(['id', 'nome', 'codigo_operador', 'email', 'senha', 'ativo', 'perfil'])
             ->where('codigo_operador', $codigo)
             ->first();
 
-        // Se não encontrar ou senha incorreta
         if (! $usuario || ! Hash::check((string) $senha, $usuario->senha)) {
             return response()->json([
                 'status' => 'error',
@@ -61,7 +61,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Se o usuário estiver inativo
         if (! $usuario->ativo) {
             return response()->json([
                 'status' => 'error',
@@ -69,7 +68,6 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Geração do token JWT
         $token = $this->jwtService->generateToken($usuario);
 
         return response()->json([
@@ -78,14 +76,7 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $this->jwtService->getTTLInSeconds(),
-            'usuario' => [
-                'id' => $usuario->id,
-                'nome' => $usuario->nome,
-                'email' => $usuario->email,
-                'codigo_operador' => $usuario->codigo_operador,
-                'perfil' => $usuario->perfil,
-                'ativo' => (bool) $usuario->ativo,
-            ],
+            'usuario' => new UsuarioResource($usuario),
         ], 200);
     }
 }

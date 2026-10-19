@@ -67,7 +67,10 @@ class JwtService
             return null;
         }
 
-        return Usuario::query()->whereKey($payload->sub)->first();
+        return Usuario::query()
+            ->select(['id', 'nome', 'email', 'codigo_operador', 'perfil', 'ativo'])
+            ->whereKey($payload->sub)
+            ->first();
     }
 
     /**

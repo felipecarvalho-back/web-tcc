@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\PerfilUsuario;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -40,7 +40,7 @@ class Usuarios extends Component
 
     public string $email = '';
 
-    public string $perfil = 'operador'; // admin, operador, supervisor
+    public string $perfil = PerfilUsuario::Operador->value;
 
     public string $codigo_operador = '';
 
@@ -74,7 +74,7 @@ class Usuarios extends Component
     {
         $this->resetForm();
         $this->editingId = null;
-        $this->perfil = 'operador';
+        $this->perfil = PerfilUsuario::Operador->value;
         $this->codigo_operador = Usuario::gerarProximoCodigo($this->perfil);
         $this->showFormModal = true;
     }
@@ -112,7 +112,7 @@ class Usuarios extends Component
     public function save(): void
     {
         $rules = [
-            'nome' => 'required|min:3|max:100',
+            'nome' => ['required', 'min:3', 'max:100'],
             'cpf' => [
                 'required',
                 'min:11',
@@ -125,14 +125,14 @@ class Usuarios extends Component
                 'max:100',
                 Rule::unique('usuarios', 'email')->ignore($this->editingId),
             ],
-            'perfil' => 'required|in:admin,operador,supervisor',
+            'perfil' => ['required', Rule::in(PerfilUsuario::values())],
         ];
 
         if ($this->editingId === null) {
-            $rules['senha'] = 'required|min:6|confirmed';
+            $rules['senha'] = ['required', 'min:6', 'confirmed'];
             $this->codigo_operador = Usuario::gerarProximoCodigo($this->perfil);
         } elseif (! empty($this->senha)) {
-            $rules['senha'] = 'min:6|confirmed';
+            $rules['senha'] = ['min:6', 'confirmed'];
         }
 
         $messages = [
@@ -158,7 +158,7 @@ class Usuarios extends Component
                 'email' => $this->email,
                 'perfil' => $this->perfil,
                 'codigo_operador' => strtoupper($this->codigo_operador),
-                'senha' => Hash::make($this->senha),
+                'senha' => $this->senha,
                 'ativo' => $this->ativo,
             ]);
 
@@ -173,13 +173,14 @@ class Usuarios extends Component
                 'ativo' => $this->ativo,
             ];
             if (! empty($this->senha)) {
-                $data['senha'] = Hash::make($this->senha);
+                $data['senha'] = $this->senha;
             }
             $user->update($data);
 
             $this->triggerToast('Dados do usuário atualizados com sucesso!', 'success');
         }
 
+        unset($this->usuarios, $this->stats);
         $this->closeModal();
     }
 
@@ -191,12 +192,13 @@ class Usuarios extends Component
 
         $statusMsg = $novoStatus ? 'ativado' : 'desativado';
         $tipoToast = $novoStatus ? 'success' : 'info';
+        unset($this->usuarios);
         $this->triggerToast("Usuário {$user->nome} foi {$statusMsg}!", $tipoToast);
     }
 
     public function delete(int $id): void
     {
-        if (Auth::user() === $id) {
+        if (Auth::id() === $id) {
             $this->triggerToast('Você não pode excluir seu próprio usuário logado!', 'error');
 
             return;
@@ -206,6 +208,7 @@ class Usuarios extends Component
         $nome = $user->nome;
         $user->delete();
 
+        unset($this->usuarios, $this->stats);
         $this->triggerToast("Usuário {$nome} excluído com sucesso!", 'info');
     }
 
@@ -214,7 +217,7 @@ class Usuarios extends Component
         $this->nome = '';
         $this->cpf = '';
         $this->email = '';
-        $this->perfil = 'operador';
+        $this->perfil = PerfilUsuario::Operador->value;
         $this->codigo_operador = '';
         $this->senha = '';
         $this->senha_confirmation = '';
@@ -222,14 +225,17 @@ class Usuarios extends Component
         $this->resetErrorBag();
     }
 
+    /**
+     * @return array{total: int, admins: int, operadores: int, supervisores: int}
+     */
     #[Computed]
     public function stats(): array
     {
         $counts = Usuario::selectRaw("
-            count(*) as total,
-            count(case when perfil = 'admin' then 1 end) as admins,
-            count(case when perfil = 'operador' then 1 end) as operadores,
-            count(case when perfil = 'supervisor' then 1 end) as supervisores
+            COUNT(*) as total,
+            COALESCE(SUM(CASE WHEN perfil = 'admin' THEN 1 ELSE 0 END), 0) as admins,
+            COALESCE(SUM(CASE WHEN perfil = 'operador' THEN 1 ELSE 0 END), 0) as operadores,
+            COALESCE(SUM(CASE WHEN perfil = 'supervisor' THEN 1 ELSE 0 END), 0) as supervisores
         ")->first();
 
         return [
@@ -244,26 +250,10 @@ class Usuarios extends Component
     public function usuarios(): LengthAwarePaginator
     {
         return Usuario::query()
-            ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at']) // Busca apenas as colunas necessárias
-            ->when(trim($this->search), function ($query, $term) { // Se digitou algo na busca:
-                $query->where(function ($q) use ($term) {
-                    $q->where('nome', 'like', "%{$term}%") // Busca por nome
-                        ->orWhere('email', 'like', "%{$term}%") // ...ou por email
-                        ->orWhere('cpf', 'like', "%{$term}%") // ...ou por CPF
-                        ->orWhere('codigo_operador', 'like', "%{$term}%"); // ...ou por código de operador
-                });
-            })
-            ->when($this->perfilFilter !== 'todos', function ($query) { // Se escolheu um perfil específico:
-                $query->where('perfil', $this->perfilFilter); // Filtra pelo perfil
-            })
-            ->when($this->statusFilter === 'ativo', function ($query) { // Se o filtro for 'ativo':
-                $query->where('ativo', true); // Traz apenas ativos
-            })
-            ->when($this->statusFilter === 'inativo', function ($query) { // Se o filtro for 'inativo':
-                $query->where('ativo', false); // Traz apenas inativos
-            })
-            ->orderByDesc('id') // Mais recentes primeiro (ID decrescente)
-            ->paginate(10); // Divide em páginas de 10 em 10
+            ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at'])
+            ->filtrar($this->search, $this->perfilFilter, $this->statusFilter)
+            ->orderByDesc('id')
+            ->paginate(10);
     }
 
     private function triggerToast(string $message, string $type = 'success'): void
@@ -280,8 +270,8 @@ class Usuarios extends Component
     public function render()
     {
         return view('livewire.admin.usuarios', [
-            'usuariosList' => $this->usuarios(),
-            'stats' => $this->stats(),
+            'usuariosList' => $this->usuarios,
+            'stats' => $this->stats,
         ]);
     }
 }
