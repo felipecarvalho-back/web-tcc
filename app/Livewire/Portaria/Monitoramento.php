@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Portaria;
 
+use App\Enums\StatusAcesso;
 use App\Models\RegistroAcesso;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -68,16 +68,13 @@ class Monitoramento extends Component
      */
     private function loadMetrics(): void
     {
-        $inicioHoje = Carbon::today()->startOfDay();
-        $fimHoje = Carbon::today()->endOfDay();
-
         $metricas = RegistroAcesso::query()
-            ->whereBetween('data_hora_entrada', [$inicioHoje, $fimHoje])
+            ->filtrarData('hoje')
             ->selectRaw('
                 COUNT(*) as total,
                 COALESCE(SUM(CASE WHEN placa_registro != ? AND placa_corrigida IS NULL THEN 1 ELSE 0 END), 0) as automaticas,
                 COALESCE(SUM(CASE WHEN placa_corrigida IS NOT NULL THEN 1 ELSE 0 END), 0) as manuais
-            ', ['SEM-PLACA'])
+            ', [RegistroAcesso::PLACA_NAO_IDENTIFICADA])
             ->first();
 
         $this->totalPassages = (int) ($metricas->total ?? 0);
@@ -86,7 +83,7 @@ class Monitoramento extends Component
     }
 
     /**
-     * Consulta e formata os registros filtrados diretamente no banco de dados.
+     * Consulta e formata os registros filtrados diretamente no banco de dados usando Query Scopes.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -97,7 +94,7 @@ class Monitoramento extends Component
             return [];
         }
 
-        $query = RegistroAcesso::query()
+        return RegistroAcesso::query()
             ->select([
                 'id',
                 'veiculo_id',
@@ -113,109 +110,15 @@ class Monitoramento extends Component
                 'justificativa',
             ])
             ->with(['operador:id,nome'])
+            ->filtrarData($this->filterDate)
+            ->filtrarPlaca($this->filterPlate)
+            ->filtrarStatus($this->filterStatus)
             ->latest('data_hora_entrada')
-            ->latest('id');
-
-        // 1. Filtro de Data usando intervalos compatíveis com índices B-Tree (PostgreSQL / MySQL)
-        match ($this->filterDate) {
-            'hoje' => $query->whereBetween('data_hora_entrada', [
-                Carbon::today()->startOfDay(),
-                Carbon::today()->endOfDay(),
-            ]),
-            'ontem' => $query->whereBetween('data_hora_entrada', [
-                Carbon::yesterday()->startOfDay(),
-                Carbon::yesterday()->endOfDay(),
-            ]),
-            '7dias' => $query->where('data_hora_entrada', '>=', Carbon::today()->subDays(7)->startOfDay()),
-            'mes' => $query->whereBetween('data_hora_entrada', [
-                Carbon::now()->startOfMonth(),
-                Carbon::now()->endOfMonth(),
-            ]),
-            default => null,
-        };
-
-        // 2. Filtro por Placa direto no SQL (whereLike usa ILIKE no PostgreSQL e LIKE no MySQL)
-        $buscaPlaca = strtoupper(trim($this->filterPlate));
-        if ($buscaPlaca !== '') {
-            $buscaSemHifen = str_replace('-', '', $buscaPlaca);
-            $query->where(function (Builder $q) use ($buscaPlaca, $buscaSemHifen) {
-                $q->whereLike('placa_registro', "%{$buscaPlaca}%")
-                    ->orWhereLike('placa_corrigida', "%{$buscaPlaca}%")
-                    ->orWhereLike('placa_registro', "%{$buscaSemHifen}%");
-            });
-        }
-
-        // 3. Filtro por Status direto no SQL
-        match ($this->filterStatus) {
-            'pendente' => $query->where('status', 'pendente')->whereNull('data_hora_saida'),
-            'autorizado' => $query->whereIn('status', ['autorizado', 'em_patio', 'liberado_manual'])->whereNull('data_hora_saida'),
-            'nao_cadastrado' => $query->whereIn('status', ['nao_cadastrado', 'bloqueado'])->whereNull('data_hora_saida'),
-            'saida' => $query->where(function (Builder $q) {
-                $q->where('status', 'finalizado')->orWhereNotNull('data_hora_saida');
-            }),
-            default => null,
-        };
-
-        return $query
+            ->latest('id')
             ->limit(50)
             ->get()
-            ->map(fn (RegistroAcesso $registro): array => $this->formatRecord($registro))
+            ->map(fn (RegistroAcesso $registro): array => $registro->toMonitoringArray())
             ->all();
-    }
-
-    /**
-     * Formata uma instância de RegistroAcesso para a estrutura esperada pela view.
-     *
-     * @return array<string, mixed>
-     */
-    private function formatRecord(RegistroAcesso $registro): array
-    {
-        $placaExibida = $registro->placa_corrigida ?: $registro->placa_registro;
-
-        $statusView = match (true) {
-            $registro->data_hora_saida !== null || $registro->status === 'finalizado' => 'saida',
-            in_array($registro->status, ['autorizado', 'em_patio', 'liberado_manual'], true) => 'autorizado',
-            in_array($registro->status, ['nao_cadastrado', 'bloqueado'], true) => 'nao_cadastrado',
-            default => 'pendente',
-        };
-
-        $statusLabel = match (true) {
-            $registro->data_hora_saida !== null || $registro->status === 'finalizado' => 'Saída Registrada',
-            $registro->status === 'liberado_manual' && ! empty($registro->placa_corrigida) => 'Autorizado (Placa Corrigida)',
-            $registro->status === 'liberado_manual' => 'Liberado Manualmente',
-            in_array($registro->status, ['autorizado', 'em_patio'], true) => 'Autorizado',
-            $registro->status === 'bloqueado' => 'Bloqueado',
-            $registro->status === 'nao_cadastrado' && $registro->placa_registro === 'SEM-PLACA' => 'Placa Não Identificada',
-            $registro->status === 'nao_cadastrado' => 'Não Cadastrado',
-            default => 'Aguardando Liberação',
-        };
-
-        $driverName = ($registro->placa_registro === 'SEM-PLACA' && empty($registro->placa_corrigida))
-            ? 'Placa Não Identificada'
-            : 'Condutor Não Vinculado';
-
-        $detalhes = [$registro->cancela];
-        if ($registro->operador) {
-            $detalhes[] = 'Operador: '.$registro->operador->nome;
-        }
-        if ($registro->justificativa) {
-            $detalhes[] = $registro->justificativa;
-        }
-
-        return [
-            'id' => $registro->id,
-            'plate' => $placaExibida,
-            'raw_ocr' => $registro->placa_registro,
-            'driver_name' => $driverName,
-            'category' => 'visitante',
-            'category_label' => implode(' • ', $detalhes),
-            'registered_at' => $registro->data_hora_entrada?->format('H:i:s') ?? '--:--:--',
-            'time_ago' => $registro->data_hora_entrada?->locale('pt_BR')->diffForHumans() ?? 'Agora mesmo',
-            'status' => $statusView,
-            'status_label' => $statusLabel,
-            'image_url' => $registro->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
-            'is_registered' => (bool) $registro->veiculo_id,
-        ];
     }
 
     /**
@@ -265,9 +168,9 @@ class Monitoramento extends Component
             return;
         }
 
-        $record = $this->formatRecord($registro);
+        $record = $registro->toMonitoringArray();
         $this->selectedRecord = $record;
-        $this->correctedPlate = $record['plate'] === 'SEM-PLACA' ? '' : $record['plate'];
+        $this->correctedPlate = $record['plate'] === RegistroAcesso::PLACA_NAO_IDENTIFICADA ? '' : $record['plate'];
         $this->driverAccessCode = '';
         $this->justification = 'Correção manual de leitura OCR';
         $this->passengers = [];
@@ -308,7 +211,7 @@ class Monitoramento extends Component
                 $registro->placa_corrigida = substr($novaPlaca, 0, 10);
             }
 
-            $registro->status = 'liberado_manual';
+            $registro->status = StatusAcesso::LiberadoManual;
             $registro->justificativa = $this->justification;
             $registro->save();
         }
@@ -316,10 +219,7 @@ class Monitoramento extends Component
         $passengerCount = count($this->passengers);
         $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
 
-        $this->showVerificationModal = false;
-        $this->selectedRecord = null;
-        $this->passengers = [];
-        $this->newPassengerCode = '';
+        $this->closeVerificationModal();
         unset($this->filteredRecords);
         $this->triggerToast("Acesso validado e cancela liberada{$passengerNote}!", 'success');
     }
@@ -334,7 +234,7 @@ class Monitoramento extends Component
             return;
         }
 
-        $this->selectedRecord = $this->formatRecord($registro);
+        $this->selectedRecord = $registro->toMonitoringArray();
         $this->confirmDriverCode = '';
         $this->passengers = [];
         $this->newPassengerCode = '';
@@ -363,15 +263,12 @@ class Monitoramento extends Component
         }
 
         $targetId = $this->selectedRecord['id'];
-        RegistroAcesso::whereKey($targetId)->update(['status' => 'autorizado']);
+        RegistroAcesso::whereKey($targetId)->update(['status' => StatusAcesso::Autorizado]);
 
         $passengerCount = count($this->passengers);
         $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
 
-        $this->showDriverConfirmationModal = false;
-        $this->selectedRecord = null;
-        $this->passengers = [];
-        $this->newPassengerCode = '';
+        $this->closeDriverConfirmationModal();
         unset($this->filteredRecords);
         $this->triggerToast("Identidade do condutor confirmada{$passengerNote}! Cancela liberada.", 'success');
     }
@@ -385,7 +282,7 @@ class Monitoramento extends Component
 
         if ($registro) {
             $registro->data_hora_saida = Carbon::now();
-            $registro->status = 'finalizado';
+            $registro->status = StatusAcesso::Finalizado;
             $registro->save();
 
             $placa = $registro->placa_corrigida ?: $registro->placa_registro;

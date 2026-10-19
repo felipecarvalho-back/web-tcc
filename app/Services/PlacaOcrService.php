@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\RegistroAcesso;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -59,7 +60,7 @@ class PlacaOcrService
     public function formatarPlaca(?string $placa): string
     {
         if (empty($placa)) {
-            return 'SEM-PLACA';
+            return RegistroAcesso::PLACA_NAO_IDENTIFICADA;
         }
 
         $limpa = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $placa));
@@ -68,6 +69,6 @@ class PlacaOcrService
             return substr($limpa, 0, 3).'-'.substr($limpa, 3);
         }
 
-        return substr($limpa ?: 'SEM-PLACA', 0, 10);
+        return substr($limpa ?: RegistroAcesso::PLACA_NAO_IDENTIFICADA, 0, 10);
     }
 }

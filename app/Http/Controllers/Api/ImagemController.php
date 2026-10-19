@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\StatusAcesso;
+use App\Enums\TipoOcupante;
 use App\Http\Controllers\Controller;
 use App\Models\RegistroAcesso;
 use App\Services\CloudinaryService;
@@ -68,18 +70,18 @@ class ImagemController extends Controller
             $armazenamento = 'local';
         }
 
-        // 4. Registra a passagem na tabela registros_acesso (sem condutor e veículo no momento)
+        // 4. Registra a passagem na tabela registros_acesso usando os Enums tipados
         $registro = RegistroAcesso::create([
             'veiculo_id' => null,
             'condutor_id' => null,
-            'tipo_ocupante' => 'condutor',
+            'tipo_ocupante' => TipoOcupante::Condutor,
             'placa_registro' => $placaFormatada,
             'cancela' => $request->input('cancela', 'Cancela 01 (Principal)'),
             'data_hora_entrada' => Carbon::now(),
             'operador_id' => $request->user()?->id,
             'foto_entrada_path' => $urlFinal,
             'placa_corrigida' => null,
-            'status' => $placaDetectada ? 'pendente' : 'nao_cadastrado',
+            'status' => $placaDetectada ? StatusAcesso::Pendente : StatusAcesso::NaoCadastrado,
             'justificativa' => $placaDetectada
                 ? 'Placa identificada via OCR'
                 : 'Placa não identificada automaticamente pelo OCR',
