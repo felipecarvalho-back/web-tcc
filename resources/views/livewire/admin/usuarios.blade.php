@@ -81,9 +81,22 @@
     <!-- PAINEL DE FILTROS & BUSCA -->
     <div
         class="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col gap-4">
-        <div class="flex items-center gap-2 pb-3 border-b border-surface-container">
-            <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
-            <h2 class="text-xs font-bold text-on-surface uppercase tracking-wider">Filtros de Pesquisa</h2>
+        <div class="flex items-center justify-between pb-3 border-b border-surface-container flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
+                <h2 class="text-xs font-bold text-on-surface uppercase tracking-wider">Filtros de Pesquisa</h2>
+            </div>
+
+            @if ($search !== '' || $perfilFilter !== 'todos' || $statusFilter !== 'todos')
+                <button
+                    type="button"
+                    wire:click="clearFilters"
+                    class="px-3 py-1 rounded-xl bg-error-container/50 hover:bg-error-container text-error text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                    <span>Limpar Filtros</span>
+                </button>
+            @endif
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -262,7 +275,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="p-8 text-center text-on-surface-variant">
+                            <td colspan="6" class="p-8 text-center text-on-surface-variant">
                                 <span
                                     class="material-symbols-outlined text-[36px] text-on-surface-variant/60 mb-2">person_off</span>
                                 <p class="text-sm font-semibold">Nenhum usuário encontrado com os filtros selecionados.
@@ -274,11 +287,17 @@
             </table>
         </div>
 
-        @if ($usuariosList->hasPages())
-            <div class="p-4 bg-surface-container-low border-t border-surface-container">
-                {{ $usuariosList->links() }}
-            </div>
-        @endif
+        <div class="p-4 bg-surface-container-low border-t border-surface-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-on-surface-variant">
+            <span>
+                Mostrando <strong class="text-on-surface font-bold">{{ $usuariosList->count() }}</strong> de <strong class="text-on-surface font-bold">{{ $usuariosList->total() }}</strong> usuário(s) cadastrado(s).
+            </span>
+
+            @if ($usuariosList->hasPages())
+                <div>
+                    {{ $usuariosList->links() }}
+                </div>
+            @endif
+        </div>
     </div>
 
     <!-- MODAL DE CADASTRO / EDIÇÃO DE USUÁRIO (COMPONENTE PARCIAL) -->

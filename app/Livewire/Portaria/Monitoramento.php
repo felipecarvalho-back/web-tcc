@@ -3,6 +3,7 @@
 namespace App\Livewire\Portaria;
 
 use App\Enums\StatusAcesso;
+use App\Livewire\Concerns\HasToast;
 use App\Models\RegistroAcesso;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,7 @@ use Livewire\WithPagination;
 #[Title('Monitoramento de Portaria - Sentinela FATEC')]
 class Monitoramento extends Component
 {
-    use WithPagination;
+    use HasToast, WithPagination;
 
     public string $filterDate = 'hoje';
 
@@ -78,11 +79,6 @@ class Monitoramento extends Component
 
     public string $newPassengerCode = '';
 
-    // Notificações Toast
-    public string $toastMessage = '';
-
-    public string $toastType = 'success';
-
     // Indicadores do topo da tela
     public int $totalPassages = 0;
 
@@ -130,30 +126,21 @@ class Monitoramento extends Component
                 'status',
                 'justificativa',
             ])
-            ->with(['operador:id,nome', 'condutor:id,nome,tipo']);
-
-        if ($this->filterCategory !== 'todos') {
-            if ($this->filterCategory === 'visitante') {
-                $query->where(function ($q): void {
-                    $q->whereNull('condutor_id')
-                        ->orWhereHas('condutor', fn ($cq) => $cq->where('tipo', 'visitante'));
-                });
-            } else {
-                $query->whereHas('condutor', fn ($cq) => $cq->where('tipo', $this->filterCategory));
-            }
-        }
-
-        return $query
+            ->with(['operador:id,nome', 'condutor:id,nome,tipo'])
+            ->filtrarCategoria($this->filterCategory)
             ->filtrarData($this->filterDate)
             ->filtrarPlaca($this->filterPlate)
-            ->filtrarStatus($this->filterStatus)
-            ->latest('data_hora_entrada')
-            ->latest('id')
-            ->paginate(10)
-            ->through(function ($registro): array {
-                /** @var RegistroAcesso $registro */
-                return $registro->toMonitoringArray();
-            });
+            ->filtrarStatus($this->filterStatus);
+
+        $query->latest('data_hora_entrada')->latest('id');
+
+        /** @var LengthAwarePaginator $paginator */
+        $paginator = $query->paginate(10);
+
+        return $paginator->through(function ($registro): array {
+            /** @var RegistroAcesso $registro */
+            return $registro->toMonitoringArray();
+        });
     }
 
     /**
@@ -320,21 +307,10 @@ class Monitoramento extends Component
             $registro->status = StatusAcesso::Finalizado;
             $registro->save();
 
-            $placa = $registro->placa_corrigida ?: $registro->placa_registro;
+            $placa = $registro->placaExibida();
             unset($this->filteredRecords);
             $this->triggerToast("Saída registrada para o veículo {$placa}!", 'info');
         }
-    }
-
-    private function triggerToast(string $message, string $type = 'success'): void
-    {
-        $this->toastMessage = $message;
-        $this->toastType = $type;
-    }
-
-    public function clearToast(): void
-    {
-        $this->toastMessage = '';
     }
 
     public function render()

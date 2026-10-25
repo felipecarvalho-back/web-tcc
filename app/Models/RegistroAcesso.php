@@ -98,6 +98,28 @@ class RegistroAcesso extends Model
     }
 
     /**
+     * Filtra os registros pela categoria de vínculo do condutor.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeFiltrarCategoria(Builder $query, string $categoria): Builder
+    {
+        if ($categoria === '' || $categoria === 'todos') {
+            return $query;
+        }
+
+        if ($categoria === 'visitante') {
+            return $query->where(function (Builder $q) {
+                $q->whereNull('condutor_id')
+                    ->orWhereHas('condutor', fn (Builder $c) => $c->where('tipo', 'visitante'));
+            });
+        }
+
+        return $query->whereHas('condutor', fn (Builder $c) => $c->where('tipo', $categoria));
+    }
+
+    /**
      * Filtra os registros pelo estado operacional da guarita.
      *
      * @param  Builder<self>  $query
@@ -117,6 +139,55 @@ class RegistroAcesso extends Model
     }
 
     /**
+     * Retorna a placa prioritária para exibição (corrigida manualmente ou lida na entrada).
+     */
+    public function placaExibida(): string
+    {
+        return (string) ($this->placa_corrigida ?: $this->placa_registro);
+    }
+
+    /**
+     * Indica se o registro possui uma placa válida identificada ou corrigida.
+     */
+    public function temPlacaIdentificada(): bool
+    {
+        $placa = $this->placaExibida();
+
+        return $placa !== '' && $placa !== self::PLACA_NAO_IDENTIFICADA;
+    }
+
+    /**
+     * Retorna o nome do condutor ou um rótulo descritivo caso ainda não esteja vinculado.
+     */
+    public function nomeCondutorExibicao(): string
+    {
+        if ($this->condutor?->nome) {
+            return $this->condutor->nome;
+        }
+
+        return ! $this->temPlacaIdentificada()
+            ? 'Placa Não Identificada'
+            : 'Condutor Não Vinculado';
+    }
+
+    /**
+     * Retorna o rótulo institucional do vínculo e setor/departamento do condutor.
+     */
+    public function descricaoVinculo(): string
+    {
+        $condutor = $this->condutor;
+        $tipo = $condutor?->tipo ?? 'visitante';
+
+        return match ($tipo) {
+            'professor' => 'Docente • '.($condutor?->professor?->departamento ?: 'Curso FATEC'),
+            'funcionario' => 'Servidor • '.($condutor?->funcionario?->setor ?: 'Administração'),
+            'prestador' => 'Prestador • '.($condutor?->prestador?->empresa ?: 'Serviço Terceirizado'),
+            'visitante' => 'Visitante • '.($condutor?->visitante?->motivo_visita ?: ($this->justificativa ?: 'Acesso Pontual')),
+            default => 'Não Cadastrado',
+        };
+    }
+
+    /**
      * Formata o registro para exibição na tabela de monitoramento em tempo real.
      *
      * @return array<string, mixed>
@@ -127,10 +198,10 @@ class RegistroAcesso extends Model
             ? $this->status
             : StatusAcesso::tryFrom((string) $this->status) ?? StatusAcesso::Pendente;
 
-        $placaExibida = $this->placa_corrigida ?: $this->placa_registro;
+        $placaExibida = $this->placaExibida();
         $temSaida = $this->data_hora_saida !== null;
         $temPlacaCorrigida = ! empty($this->placa_corrigida);
-        $semPlaca = $this->placa_registro === self::PLACA_NAO_IDENTIFICADA && ! $temPlacaCorrigida;
+        $semPlaca = ! $this->temPlacaIdentificada();
 
         $detalhes = array_filter([
             $this->cancela,
@@ -142,7 +213,7 @@ class RegistroAcesso extends Model
             'id' => $this->id,
             'plate' => $placaExibida,
             'raw_ocr' => $this->placa_registro,
-            'driver_name' => $this->condutor?->nome ?? ($semPlaca ? 'Placa Não Identificada' : 'Condutor Não Vinculado'),
+            'driver_name' => $this->nomeCondutorExibicao(),
             'category' => $this->condutor?->tipo ?? 'visitante',
             'category_label' => implode(' • ', $detalhes),
             'registered_at' => $this->data_hora_entrada?->format('H:i:s') ?? '--:--:--',

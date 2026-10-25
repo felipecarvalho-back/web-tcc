@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\PerfilUsuario;
+use App\Livewire\Concerns\HasToast;
 use App\Models\Usuario;
 use App\Rules\CpfValido;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -22,7 +23,7 @@ use Livewire\WithPagination;
 #[Title('Admin - Gestão de Usuários do Sistema - Sentinela FATEC')]
 class Usuarios extends Component
 {
-    use WithPagination;
+    use HasToast, WithPagination;
 
     public string $search = '';
 
@@ -51,11 +52,6 @@ class Usuarios extends Component
 
     public bool $ativo = true;
 
-    // Feedback visual
-    public string $toastMessage = '';
-
-    public string $toastType = 'success';
-
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -69,6 +65,13 @@ class Usuarios extends Component
     public function updatedStatusFilter(): void
     {
         $this->resetPage();
+    }
+
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'perfilFilter', 'statusFilter']);
+        $this->resetPage();
+        unset($this->usuarios);
     }
 
     public function openCreateModal(): void
@@ -251,22 +254,13 @@ class Usuarios extends Component
     #[Computed]
     public function usuarios(): LengthAwarePaginator
     {
-        return Usuario::query()
+        $query = Usuario::query()
             ->select(['id', 'nome', 'email', 'cpf', 'codigo_operador', 'perfil', 'ativo', 'created_at'])
-            ->filtrar($this->search, $this->perfilFilter, $this->statusFilter)
-            ->orderByDesc('id')
-            ->paginate(10);
-    }
+            ->filtrar($this->search, $this->perfilFilter, $this->statusFilter);
 
-    private function triggerToast(string $message, string $type = 'success'): void
-    {
-        $this->toastMessage = $message;
-        $this->toastType = $type;
-    }
+        $query->orderByDesc('id');
 
-    public function clearToast(): void
-    {
-        $this->toastMessage = '';
+        return $query->paginate(10);
     }
 
     public function render()

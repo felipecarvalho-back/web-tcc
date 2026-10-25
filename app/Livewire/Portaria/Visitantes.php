@@ -4,6 +4,7 @@ namespace App\Livewire\Portaria;
 
 use App\Enums\StatusAcesso;
 use App\Enums\TipoOcupante;
+use App\Livewire\Concerns\HasToast;
 use App\Models\Condutor;
 use App\Models\CondutorVisitante;
 use App\Models\RegistroAcesso;
@@ -28,7 +29,7 @@ use Livewire\WithPagination;
 #[Title('Gestão e Controle de Visitantes - Sentinela FATEC')]
 class Visitantes extends Component
 {
-    use WithPagination;
+    use HasToast, WithPagination;
 
     public ?int $selectedId = null;
 
@@ -61,11 +62,6 @@ class Visitantes extends Component
      * @var array<string, string>|null
      */
     public ?array $recurringVisitor = null;
-
-    // Propriedades de Feedback
-    public string $toastMessage = '';
-
-    public string $toastType = 'success';
 
     // Filtros da Consulta
     public string $searchQuery = '';
@@ -355,17 +351,6 @@ class Visitantes extends Component
             'recurringVisitor',
             'isEditing',
         ]);
-    }
-
-    public function triggerToast(string $message, string $type = 'success'): void
-    {
-        $this->toastMessage = $message;
-        $this->toastType = $type;
-    }
-
-    public function clearToast(): void
-    {
-        $this->toastMessage = '';
     }
 
     /**

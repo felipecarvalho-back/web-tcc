@@ -64,7 +64,7 @@
                 <div class="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-xl border border-surface-container text-on-surface">
                     <span class="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
                     <select wire:model.live="filterDate" class="bg-transparent w-full text-xs font-semibold outline-none cursor-pointer">
-                        <option value="hoje">Hoje, {{ date('d/m/Y') }}</option>
+                        <option value="hoje">Hoje, {{ \Illuminate\Support\Carbon::now()->format('d/m/Y') }}</option>
                         <option value="ontem">Ontem</option>
                         <option value="7dias">Últimos 7 dias</option>
                         <option value="mes">Mês Atual</option>
@@ -94,6 +94,7 @@
                     <select wire:model.live="filterCategory" class="bg-transparent w-full text-xs font-semibold outline-none cursor-pointer">
                         <option value="todos">Todas as Categorias</option>
                         <option value="professor">Professor (Docente)</option>
+                        <option value="funcionario">Servidor / Funcionário</option>
                         <option value="prestador">Prestador de Serviço</option>
                         <option value="visitante">Visitante / Externo</option>
                     </select>
