@@ -23,29 +23,5 @@ class UsuariosSeeder extends Seeder
                 'ativo' => true,
             ]
         );
-
-        Usuario::query()->firstOrCreate(
-            ['codigo_operador' => 'GDA-104'],
-            [
-                'nome' => 'Guarda Silva',
-                'cpf' => '123.456.789-01',
-                'email' => 'guarda.silva@fatec.sp.gov.br',
-                'senha' => 'guarda123',
-                'perfil' => 'operador',
-                'ativo' => true,
-            ]
-        );
-
-        Usuario::query()->firstOrCreate(
-            ['codigo_operador' => 'GDA-105'],
-            [
-                'nome' => 'Guarda Ribeiro',
-                'cpf' => '123.456.789-02',
-                'email' => 'guarda.ribeiro@fatec.sp.gov.br',
-                'senha' => 'guarda123',
-                'perfil' => 'operador',
-                'ativo' => true,
-            ]
-        );
     }
 }

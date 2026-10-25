@@ -16,8 +16,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UsuariosSeeder::class,
-            CondutoresSeeder::class,
-            RegistrosAcessoSeeder::class,
         ]);
     }
 }
