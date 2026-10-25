@@ -2,19 +2,24 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\StatusAcesso;
+use App\Enums\TipoOcupante;
 use App\Models\RegistroAcesso;
 use App\Models\Usuario;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
+ * @property-read LengthAwarePaginator $paginatedRecords
  * @property-read array<int, array<string, mixed>> $filteredData
  * @property-read array{total: int, entradas: int, saidas: int, docentes: int} $reportStats
  * @property-read array<int, array{id: string, nome: string}> $operators
@@ -23,9 +28,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 #[Title('Admin - Relatórios e Exportação PDF - Sentinela FATEC')]
 class Relatorios extends Component
 {
+    use WithPagination;
+
     public string $startDate = '';
 
     public string $endDate = '';
+
+    public string $quickPeriod = 'ano';
 
     public string $categoryFilter = 'todos';
 
@@ -33,7 +42,6 @@ class Relatorios extends Component
 
     public string $operatorFilter = 'todos';
 
-    // Filtros de Assiduidade e Frequência Docente
     public string $dayOfWeekFilter = 'todos';
 
     public string $driverSearch = '';
@@ -42,9 +50,72 @@ class Relatorios extends Component
 
     public function mount(): void
     {
-        // Define o intervalo padrão cobrindo o ano letivo corrente
-        $this->startDate = date('Y-01-01');
-        $this->endDate = date('Y-m-d');
+        $this->startDate = Carbon::now()->startOfYear()->format('Y-m-d');
+        $this->endDate = Carbon::now()->format('Y-m-d');
+    }
+
+    public function updatedStartDate(): void
+    {
+        $this->quickPeriod = 'personalizado';
+        $this->resetPage();
+    }
+
+    public function updatedEndDate(): void
+    {
+        $this->quickPeriod = 'personalizado';
+        $this->resetPage();
+    }
+
+    public function updatedCategoryFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEventType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedOperatorFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDayOfWeekFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDriverSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function setQuickPeriod(string $period): void
+    {
+        $this->quickPeriod = $period;
+        $hoje = Carbon::now();
+
+        match ($period) {
+            'hoje' => [
+                $this->startDate = $hoje->format('Y-m-d'),
+                $this->endDate = $hoje->format('Y-m-d'),
+            ],
+            '7dias' => [
+                $this->startDate = $hoje->copy()->subDays(7)->format('Y-m-d'),
+                $this->endDate = $hoje->format('Y-m-d'),
+            ],
+            'mes' => [
+                $this->startDate = $hoje->copy()->startOfMonth()->format('Y-m-d'),
+                $this->endDate = $hoje->format('Y-m-d'),
+            ],
+            default => [
+                $this->startDate = $hoje->copy()->startOfYear()->format('Y-m-d'),
+                $this->endDate = $hoje->format('Y-m-d'),
+            ],
+        };
+
+        $this->resetPage();
     }
 
     public function clearAssiduidadeFilters(): void
@@ -54,8 +125,10 @@ class Relatorios extends Component
         $this->categoryFilter = 'todos';
         $this->eventType = 'todos';
         $this->operatorFilter = 'todos';
-        $this->startDate = date('Y-01-01');
-        $this->endDate = date('Y-m-d');
+        $this->quickPeriod = 'ano';
+        $this->startDate = Carbon::now()->startOfYear()->format('Y-m-d');
+        $this->endDate = Carbon::now()->format('Y-m-d');
+        $this->resetPage();
     }
 
     /**
@@ -69,26 +142,21 @@ class Relatorios extends Component
         return Usuario::query()
             ->orderBy('nome')
             ->get(['id', 'nome'])
-            ->map(fn ($u) => ['id' => (string) $u->id, 'nome' => $u->nome])
+            ->map(function ($u): array {
+                /** @var Usuario $u */
+                return ['id' => (string) $u->id, 'nome' => $u->nome];
+            })
             ->toArray();
     }
 
     /**
-     * Constrói a query Eloquent dinâmica de acordo com os filtros.
+     * Constrói a query base com todos os filtros aplicados (sem ordenação nem eager loading).
      *
      * @return Builder<RegistroAcesso>
      */
-    public function buildQuery(): Builder
+    protected function buildBaseQuery(): Builder
     {
-        $query = RegistroAcesso::query()
-            ->with([
-                'condutor.professor',
-                'condutor.funcionario',
-                'condutor.prestador',
-                'condutor.visitante',
-                'veiculo',
-                'operador:id,nome',
-            ]);
+        $query = RegistroAcesso::query();
 
         // 1. Filtro por Período
         if (! empty($this->startDate)) {
@@ -130,49 +198,84 @@ class Relatorios extends Component
             }
         }
 
-        // 3. Busca por Condutor, Professor ou Placa
+        // 3. Busca por Condutor, Professor, Placa ou CPF
         if (! empty(trim($this->driverSearch))) {
-            $term = strtoupper(trim($this->driverSearch));
-            $query->where(function (Builder $sub) use ($term) {
-                $sub->whereLike('placa_registro', "%{$term}%")
-                    ->orWhereLike('placa_corrigida', "%{$term}%")
-                    ->orWhereHas('condutor', fn ($c) => $c->whereLike('nome', "%{$term}%"));
+            $term = trim($this->driverSearch);
+            $upperTerm = strtoupper($term);
+            $semHifen = str_replace('-', '', $upperTerm);
+
+            $query->where(function (Builder $sub) use ($term, $upperTerm, $semHifen) {
+                $sub->whereLike('placa_registro', "%{$upperTerm}%")
+                    ->orWhereLike('placa_corrigida', "%{$upperTerm}%")
+                    ->orWhereLike('placa_registro', "%{$semHifen}%")
+                    ->orWhereHas('condutor', function (Builder $c) use ($term) {
+                        $c->whereLike('nome', "%{$term}%")
+                            ->orWhereLike('cpf', "%{$term}%");
+                    });
             });
         }
 
-        // 4. Categoria
-        if ($this->categoryFilter !== 'todos') {
-            if ($this->categoryFilter === 'visitante') {
-                $query->where(function (Builder $q) {
-                    $q->whereNull('condutor_id')
-                        ->orWhereHas('condutor', fn ($c) => $c->where('tipo', 'visitante'));
-                });
-            } else {
-                $query->whereHas('condutor', fn ($c) => $c->where('tipo', $this->categoryFilter));
-            }
-        }
+        // 4. Categoria de Vínculo
+        $query->filtrarCategoria($this->categoryFilter);
 
-        // 5. Tipo de Evento
+        // 5. Tipo de Evento / Status de Permanência
         if ($this->eventType === 'entrada') {
             $query->whereNull('data_hora_saida');
         } elseif ($this->eventType === 'saida') {
             $query->whereNotNull('data_hora_saida');
         }
 
-        // 6. Operador
+        // 6. Operador da Guarita
         if ($this->operatorFilter !== 'todos') {
             if (is_numeric($this->operatorFilter)) {
                 $query->where('operador_id', (int) $this->operatorFilter);
             } else {
-                $query->whereHas('operador', fn ($o) => $o->where('nome', $this->operatorFilter));
+                $query->whereHas('operador', fn (Builder $o) => $o->where('nome', $this->operatorFilter));
             }
         }
 
-        return $query->orderByDesc('data_hora_entrada');
+        return $query;
     }
 
     /**
-     * Formata um RegistroAcesso para a visualização na tabela e exportações.
+     * Constrói a query Eloquent com relações carregadas e ordenação cronológica reversa.
+     *
+     * @return Builder<RegistroAcesso>
+     */
+    public function buildQuery(): Builder
+    {
+        $query = $this->buildBaseQuery()
+            ->select([
+                'id',
+                'veiculo_id',
+                'condutor_id',
+                'operador_id',
+                'placa_registro',
+                'placa_corrigida',
+                'cancela',
+                'data_hora_entrada',
+                'data_hora_saida',
+                'status',
+                'tipo_ocupante',
+                'justificativa',
+            ])
+            ->with([
+                'condutor:id,nome,cpf,tipo',
+                'condutor.professor:condutor_id,departamento',
+                'condutor.funcionario:condutor_id,setor',
+                'condutor.prestador:condutor_id,empresa',
+                'condutor.visitante:condutor_id,motivo_visita',
+                'veiculo:id,placa,modelo',
+                'operador:id,nome,codigo_operador',
+            ]);
+
+        $query->orderByDesc('data_hora_entrada');
+
+        return $query;
+    }
+
+    /**
+     * Formata um RegistroAcesso para visualização na tabela, documento de impressão e CSV.
      *
      * @return array<string, mixed>
      */
@@ -195,293 +298,119 @@ class Relatorios extends Component
 
         $condutor = $reg->condutor;
         $tipo = $condutor?->tipo ?? 'visitante';
+        $temPlacaCorrigida = ! empty($reg->placa_corrigida);
 
-        $categoriaLabel = match ($tipo) {
-            'professor' => 'Docente '.($condutor?->professor?->departamento ?: 'Geral'),
-            'funcionario' => 'Funcionário '.($condutor?->funcionario?->setor ?: 'Administrativo'),
-            'prestador' => 'Prestador - '.($condutor?->prestador?->empresa ?: 'Serviços'),
-            'visitante' => 'Visitante - '.($condutor?->visitante?->motivo_visita ?: 'Visita'),
-            default => 'Não Cadastrado',
-        };
-
-        $placaExibida = $reg->placa_corrigida ?: $reg->placa_registro;
-        $semPlaca = $reg->placa_registro === RegistroAcesso::PLACA_NAO_IDENTIFICADA && empty($reg->placa_corrigida);
-        $nomeCondutor = $condutor?->nome ?? ($semPlaca ? 'Placa Não Identificada' : 'Condutor Não Vinculado');
-
-        $temSaida = $saida !== null;
+        $temSaida = $saida !== null || $reg->status === StatusAcesso::Finalizado;
         $evento = $temSaida ? 'saida' : 'entrada';
+
+        $statusEnum = $reg->status instanceof StatusAcesso
+            ? $reg->status
+            : (StatusAcesso::tryFrom((string) $reg->status) ?? StatusAcesso::Autorizado);
+
         $eventoLabel = $temSaida
             ? 'Saída Registrada'
-            : (! empty($reg->placa_corrigida) ? 'Entrada c/ Placa Corrigida' : (! empty($reg->justificativa) ? 'Entrada c/ Validação de Código' : 'Entrada Automática OCR'));
+            : match ($statusEnum) {
+                StatusAcesso::LiberadoManual => $temPlacaCorrigida ? 'Entrada (Placa Corrigida)' : 'Entrada Manual Liberada',
+                StatusAcesso::Pendente => 'Entrada Aguardando Guarita',
+                StatusAcesso::NaoCadastrado, StatusAcesso::Bloqueado => 'Entrada Não Credenciada',
+                default => 'Entrada Autorizada OCR',
+            };
 
-        $permanencia = $temSaida && $entrada
-            ? $entrada->diffForHumans($saida, true)
+        $permanencia = $temSaida && $entrada && $saida
+            ? $entrada->locale('pt_BR')->diffForHumans($saida, true)
             : 'Em Pátio';
+
+        $ocupanteEnum = $reg->tipo_ocupante instanceof TipoOcupante
+            ? $reg->tipo_ocupante
+            : (TipoOcupante::tryFrom((string) $reg->tipo_ocupante) ?? TipoOcupante::Condutor);
 
         return [
             'id' => 'REG-'.str_pad((string) $reg->id, 5, '0', STR_PAD_LEFT),
             'raw_id' => $reg->id,
+            'date_only' => $entrada?->format('d/m/Y') ?? '--/--/----',
+            'entry_hour' => $entrada?->format('H:i:s') ?? '--:--:--',
             'date_time' => $entrada?->format('d/m/Y H:i:s') ?? '--/--/---- --:--:--',
             'exit_time' => $saida?->format('d/m/Y H:i:s'),
+            'exit_hour' => $saida?->format('H:i:s'),
             'day_of_week' => $diaInfo['key'],
             'day_of_week_label' => $diaInfo['label'],
-            'plate' => $placaExibida,
-            'driver' => $nomeCondutor,
+            'plate' => $reg->placaExibida(),
+            'vehicle_model' => $reg->veiculo?->modelo,
+            'driver' => $reg->nomeCondutorExibicao(),
+            'driver_cpf' => $condutor?->cpf,
             'category' => $tipo,
-            'category_label' => $categoriaLabel,
+            'category_label' => $reg->descricaoVinculo(),
             'event' => $evento,
             'event_label' => $eventoLabel,
             'gate' => $reg->cancela ?: 'Cancela 01 (Principal)',
-            'operator' => $reg->operador?->nome ?? 'Sistema Auto',
-            'occupant_type' => $reg->tipo_ocupante?->value ?? 'condutor',
+            'operator' => $reg->operador?->nome ?? 'Sistema OCR Auto',
+            'operator_code' => $reg->operador?->codigo_operador,
+            'occupant_type' => $ocupanteEnum->value,
             'permanencia' => $permanencia,
+            'justificativa' => $reg->justificativa,
         ];
     }
 
     /**
-     * Retorna os registros filtrados do relatório.
+     * Retorna os registros paginados para a tabela interativa da tela.
+     */
+    #[Computed]
+    public function paginatedRecords(): LengthAwarePaginator
+    {
+        /** @var LengthAwarePaginator $paginator */
+        $paginator = $this->buildQuery()->paginate(10);
+
+        return $paginator->through(function ($reg): array {
+            /** @var RegistroAcesso $reg */
+            return $this->formatRecord($reg);
+        });
+    }
+
+    /**
+     * Retorna todos os registros filtrados para o documento de impressão/PDF e exportação CSV.
      *
      * @return array<int, array<string, mixed>>
      */
     #[Computed]
     public function filteredData(): array
     {
-        if (RegistroAcesso::query()->exists()) {
-            return $this->buildQuery()
-                ->get()
-                ->map(fn (RegistroAcesso $reg) => $this->formatRecord($reg))
-                ->toArray();
-        }
-
-        return $this->filterMockData();
+        return $this->buildQuery()
+            ->limit(500)
+            ->get()
+            ->map(function ($reg): array {
+                /** @var RegistroAcesso $reg */
+                return $this->formatRecord($reg);
+            })
+            ->toArray();
     }
 
     /**
-     * Aplica os filtros em memória aos registros de demonstração quando o banco estiver vazio.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    protected function filterMockData(): array
-    {
-        return array_values(array_filter($this->mockRecords(), function (array $item): bool {
-            if ($this->dayOfWeekFilter !== 'todos' && ($item['day_of_week'] ?? '') !== $this->dayOfWeekFilter) {
-                return false;
-            }
-
-            if (! empty(trim($this->driverSearch))) {
-                $term = trim($this->driverSearch);
-                $matchDriver = stripos((string) $item['driver'], $term) !== false;
-                $matchPlate = stripos((string) $item['plate'], $term) !== false;
-
-                if (! $matchDriver && ! $matchPlate) {
-                    return false;
-                }
-            }
-
-            if ($this->categoryFilter !== 'todos' && ($item['category'] ?? '') !== $this->categoryFilter) {
-                return false;
-            }
-
-            if ($this->eventType !== 'todos' && ($item['event'] ?? '') !== $this->eventType) {
-                return false;
-            }
-
-            if ($this->operatorFilter !== 'todos' && ($item['operator'] ?? '') !== $this->operatorFilter) {
-                return false;
-            }
-
-            return true;
-        }));
-    }
-
-    /**
-     * Registros de demonstração caso o banco de dados esteja vazio (ex: testes em memória SQLite).
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function mockRecords(): array
-    {
-        return [
-            [
-                'id' => 'REG-10504',
-                'raw_id' => 10504,
-                'date_time' => '22/09/2026 22:35:10',
-                'exit_time' => '22/09/2026 22:35:10',
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'saida',
-                'event_label' => 'Saída Noturna Registrada',
-                'gate' => 'Cancela 03 (Saída)',
-                'operator' => 'Guarda Silva',
-                'occupant_type' => 'condutor',
-                'permanencia' => '3h 53min',
-            ],
-            [
-                'id' => 'REG-10503',
-                'raw_id' => 10503,
-                'date_time' => '22/09/2026 18:42:05',
-                'exit_time' => null,
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'entrada',
-                'event_label' => 'Entrada c/ Validação de Código',
-                'gate' => 'Cancela 01 (Principal)',
-                'operator' => 'Guarda Silva',
-                'occupant_type' => 'condutor',
-                'permanencia' => 'Em Pátio',
-            ],
-            [
-                'id' => 'REG-10499',
-                'raw_id' => 10499,
-                'date_time' => '15/09/2026 22:40:00',
-                'exit_time' => '15/09/2026 22:40:00',
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'saida',
-                'event_label' => 'Saída Noturna Registrada',
-                'gate' => 'Cancela 03 (Saída)',
-                'operator' => 'Guarda Ribeiro',
-                'occupant_type' => 'condutor',
-                'permanencia' => '3h 51min',
-            ],
-            [
-                'id' => 'REG-10498',
-                'raw_id' => 10498,
-                'date_time' => '15/09/2026 18:48:30',
-                'exit_time' => null,
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'entrada',
-                'event_label' => 'Entrada Automática OCR',
-                'gate' => 'Cancela 01 (Principal)',
-                'operator' => 'Sistema Auto',
-                'occupant_type' => 'condutor',
-                'permanencia' => 'Em Pátio',
-            ],
-            [
-                'id' => 'REG-10492',
-                'raw_id' => 10492,
-                'date_time' => '08/09/2026 22:38:40',
-                'exit_time' => '08/09/2026 22:38:40',
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'saida',
-                'event_label' => 'Saída Noturna Registrada',
-                'gate' => 'Cancela 03 (Saída)',
-                'operator' => 'Guarda Silva',
-                'occupant_type' => 'condutor',
-                'permanencia' => '3h 48min',
-            ],
-            [
-                'id' => 'REG-10491',
-                'raw_id' => 10491,
-                'date_time' => '08/09/2026 18:50:15',
-                'exit_time' => null,
-                'day_of_week' => 'segunda',
-                'day_of_week_label' => 'Segunda-feira',
-                'plate' => 'BRA-2819',
-                'driver' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'category_label' => 'Docente DSM',
-                'event' => 'entrada',
-                'event_label' => 'Entrada Automática OCR',
-                'gate' => 'Cancela 01 (Principal)',
-                'operator' => 'Guarda Silva',
-                'occupant_type' => 'condutor',
-                'permanencia' => 'Em Pátio',
-            ],
-            [
-                'id' => 'REG-10485',
-                'raw_id' => 10485,
-                'date_time' => '23/09/2026 14:14:02',
-                'exit_time' => null,
-                'day_of_week' => 'terca',
-                'day_of_week_label' => 'Terça-feira',
-                'plate' => 'GTR-4C88',
-                'driver' => 'Profa. Dra. Juliana Rezende',
-                'category' => 'professor',
-                'category_label' => 'Docente GTI',
-                'event' => 'entrada',
-                'event_label' => 'Entrada Automática OCR',
-                'gate' => 'Cancela 01 (Principal)',
-                'operator' => 'Guarda Ribeiro',
-                'occupant_type' => 'condutor',
-                'permanencia' => 'Em Pátio',
-            ],
-            [
-                'id' => 'REG-10475',
-                'raw_id' => 10475,
-                'date_time' => '24/09/2026 14:28:40',
-                'exit_time' => null,
-                'day_of_week' => 'quarta',
-                'day_of_week_label' => 'Quarta-feira',
-                'plate' => 'ABC-1234',
-                'driver' => 'Carlos Silva',
-                'category' => 'prestador',
-                'category_label' => 'Manutenção Predial',
-                'event' => 'entrada',
-                'event_label' => 'Entrada Automática OCR',
-                'gate' => 'Cancela 01 (Principal)',
-                'operator' => 'Guarda Ribeiro',
-                'occupant_type' => 'condutor',
-                'permanencia' => 'Em Pátio',
-            ],
-            [
-                'id' => 'REG-10470',
-                'raw_id' => 10470,
-                'date_time' => '25/09/2026 13:45:00',
-                'exit_time' => '25/09/2026 18:15:00',
-                'day_of_week' => 'quinta',
-                'day_of_week_label' => 'Quinta-feira',
-                'plate' => 'KPL-3390',
-                'driver' => 'Prof. Me. André Cavalcante',
-                'category' => 'professor',
-                'category_label' => 'Docente IA / BD',
-                'event' => 'saida',
-                'event_label' => 'Saída Regular Registrada',
-                'gate' => 'Cancela 03 (Saída)',
-                'operator' => 'Guarda Silva',
-                'occupant_type' => 'condutor',
-                'permanencia' => '4h 30min',
-            ],
-        ];
-    }
-
-    /**
-     * Retorna os 4 totalizadores do sumário executivo.
+     * Retorna os 4 totalizadores do sumário executivo diretamente via agregação SQL no período filtrado.
      *
      * @return array{total: int, entradas: int, saidas: int, docentes: int}
      */
     #[Computed]
     public function reportStats(): array
     {
-        $data = $this->filteredData;
+        $base = $this->buildBaseQuery();
+
+        $totais = (clone $base)
+            ->selectRaw('
+                COUNT(*) as total,
+                COALESCE(SUM(CASE WHEN data_hora_saida IS NULL THEN 1 ELSE 0 END), 0) as entradas,
+                COALESCE(SUM(CASE WHEN data_hora_saida IS NOT NULL THEN 1 ELSE 0 END), 0) as saidas
+            ')
+            ->first();
+
+        $docentes = (clone $base)
+            ->whereHas('condutor', fn (Builder $q) => $q->where('tipo', 'professor'))
+            ->count();
 
         return [
-            'total' => count($data),
-            'entradas' => count(array_filter($data, fn ($i) => ($i['event'] ?? '') === 'entrada')),
-            'saidas' => count(array_filter($data, fn ($i) => ($i['event'] ?? '') === 'saida')),
-            'docentes' => count(array_filter($data, fn ($i) => ($i['category'] ?? '') === 'professor')),
+            'total' => (int) ($totais->total ?? 0),
+            'entradas' => (int) ($totais->entradas ?? 0),
+            'saidas' => (int) ($totais->saidas ?? 0),
+            'docentes' => $docentes,
         ];
     }
 
@@ -490,7 +419,7 @@ class Relatorios extends Component
      */
     public function exportCsv(): StreamedResponse
     {
-        $filename = 'relatorio_acessos_sentinela_'.now()->format('Ymd_His').'.csv';
+        $filename = 'relatorio_acessos_sentinela_'.Carbon::now()->format('Ymd_His').'.csv';
         $records = $this->filteredData;
 
         return response()->streamDownload(function () use ($records): void {
@@ -504,21 +433,25 @@ class Relatorios extends Component
 
             fputcsv($handle, [
                 'Protocolo',
-                'Data & Horário Entrada',
+                'Data Entrada',
+                'Horário Entrada',
+                'Horário Saída',
                 'Dia da Semana',
                 'Placa',
                 'Condutor',
-                'Categoria',
-                'Movimentação',
+                'Categoria & Vínculo',
+                'Status da Movimentação',
                 'Cancela',
-                'Operador',
+                'Operador Responsável',
                 'Permanência',
             ], ';', '"', '\\');
 
             foreach ($records as $item) {
                 fputcsv($handle, [
                     $item['id'] ?? '',
-                    $item['date_time'] ?? '',
+                    $item['date_only'] ?? '',
+                    $item['entry_hour'] ?? '',
+                    $item['exit_hour'] ?? 'Em Pátio',
                     $item['day_of_week_label'] ?? '',
                     $item['plate'] ?? '',
                     $item['driver'] ?? '',
@@ -550,6 +483,7 @@ class Relatorios extends Component
     public function render(): View
     {
         return view('livewire.admin.relatorios', [
+            'records' => $this->paginatedRecords,
             'filteredData' => $this->filteredData,
             'reportStats' => $this->reportStats,
             'operators' => $this->operators,
