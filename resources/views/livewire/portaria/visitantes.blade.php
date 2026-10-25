@@ -17,7 +17,7 @@
                 Cadastro Rápido de Visitantes
             </h1>
             <p class="text-sm text-on-surface-variant">
-                Registro instantâneo de visitantes e veículos não credenciados para autorização e liberação imediata da cancela.
+                Registro e gerenciamento de visitantes e veículos não credenciados para autorização do campus.
             </p>
         </div>
 
@@ -34,15 +34,17 @@
 
     <!-- GRID: FORMULÁRIO PRINCIPAL & VISITANTES RECENTES -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- FORMULÁRIO DE CADASTRO RÁPIDO (7 COLUNAS) -->
+        <!-- FORMULÁRIO DE CADASTRO / EDIÇÃO (7 COLUNAS) -->
         <div class="lg:col-span-7 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col gap-5">
             <div class="flex items-center justify-between pb-4 border-b border-surface-container">
                 <div class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+                        <span class="material-symbols-outlined text-[20px]">{{ $isEditing ? 'edit_square' : 'how_to_reg' }}</span>
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-on-surface">Formulário de Entrada Imediata</h2>
+                        <h2 class="text-base font-bold text-on-surface">
+                            {{ $isEditing ? 'Editar Registro de Visitante' : 'Formulário de Entrada Imediata' }}
+                        </h2>
                         <span class="text-xs text-on-surface-variant">Preencha os dados do condutor e do veículo</span>
                     </div>
                 </div>
@@ -186,13 +188,23 @@
 
                 <!-- BOTÕES DE AÇÃO -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-surface-container">
+                    @if ($isEditing)
+                        <button 
+                            type="button" 
+                            wire:click="cancelEdit"
+                            class="w-full sm:w-auto h-12 px-5 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-sm rounded-xl transition-all cursor-pointer"
+                        >
+                            Cancelar Edição
+                        </button>
+                    @endif
+
                     <button 
                         type="submit" 
                         wire:loading.attr="disabled"
                         class="w-full sm:flex-1 h-12 bg-primary hover:bg-primary-container disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
                     >
-                        <span class="material-symbols-outlined text-[22px]">garage</span>
-                        <span>Cadastrar e Liberar Cancela Imediatamente</span>
+                        <span class="material-symbols-outlined text-[22px]">{{ $isEditing ? 'save' : 'garage' }}</span>
+                        <span>{{ $isEditing ? 'Salvar Alterações' : 'Cadastrar e Liberar Cancela Imediatamente' }}</span>
                     </button>
                 </div>
             </form>
@@ -212,47 +224,60 @@
 
             <div class="flex flex-col gap-3 overflow-y-auto max-h-[580px] pr-1">
                 @forelse ($recentVisitors as $visitor)
-                    <div wire:key="visitor-{{ $visitor['id'] }}" class="p-4 rounded-xl border border-surface-container bg-surface-container-low/60 hover:bg-surface-container-low transition-colors flex flex-col gap-3">
+                    <div wire:key="visitor-{{ $visitor->id }}" class="p-4 rounded-xl border border-surface-container bg-surface-container-low/60 hover:bg-surface-container-low transition-colors flex flex-col gap-3">
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">
-                                <!-- Card de Placa -->
-                                <x-mercosul-plate :plate="$visitor['plate']" size="sm" />
+                                <x-mercosul-plate :plate="$visitor->placa_veiculo" size="sm" />
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-xs font-bold text-on-surface truncate">{{ $visitor['name'] }}</span>
-                                    <span class="text-[11px] text-on-surface-variant font-mono">{{ $visitor['cpf'] }}</span>
+                                    <span class="text-xs font-bold text-on-surface truncate">{{ $visitor->nome }}</span>
+                                    <span class="text-[11px] text-on-surface-variant font-mono">{{ $visitor->cpf }}</span>
                                 </div>
                             </div>
 
-                            @if ($visitor['status'] === 'ativo')
-                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
-                                    No Campus
-                                </span>
-                            @else
-                                <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant text-[10px] font-bold shrink-0">
-                                    Finalizado
-                                </span>
-                            @endif
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                @if ($visitor->status === 'ativo')
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                        No Campus
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant text-[10px] font-bold">
+                                        Finalizado
+                                    </span>
+                                @endif
+
+                                <!-- BOTÕES DE AÇÕES (EDITAR / EXCLUIR) -->
+                                <button 
+                                    wire:click="editVisitor({{ $visitor->id }})" 
+                                    title="Editar Visitante" 
+                                    class="p-1 text-on-surface-variant hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                                <button 
+                                    wire:click="confirmDelete({{ $visitor->id }})" 
+                                    title="Excluir Registro" 
+                                    class="p-1 text-on-surface-variant hover:text-error rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="text-xs text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg border border-surface-container/60 space-y-1">
                             <div class="flex justify-between">
                                 <span class="font-semibold text-on-surface">Motivo:</span>
-                                <span class="text-right truncate max-w-[180px]">{{ $visitor['reason'] }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-semibold text-on-surface">Destino:</span>
-                                <span>{{ $visitor['department'] }}</span>
+                                <span class="text-right truncate max-w-[180px]">{{ $visitor->destino_motivo }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="font-semibold text-on-surface">Entrada:</span>
-                                <span class="font-mono">{{ $visitor['entry_time'] }} ({{ $visitor['stay'] }})</span>
+                                <span class="font-mono">{{ $visitor->created_at->format('H:i:s') }}</span>
                             </div>
                         </div>
 
-                        @if ($visitor['status'] === 'ativo')
+                        @if ($visitor->status === 'ativo')
                             <button 
                                 type="button" 
-                                wire:click="markVisitorExit({{ $visitor['id'] }})"
+                                wire:click="markVisitorExit({{ $visitor->id }})"
                                 class="w-full py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             >
                                 <span class="material-symbols-outlined text-[16px]">logout</span>
@@ -268,4 +293,33 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    @if ($showDeleteModal)
+        <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full border border-surface-container shadow-xl flex flex-col gap-4">
+                <div class="flex items-center gap-3 text-error">
+                    <span class="material-symbols-outlined text-[28px]">warning</span>
+                    <h3 class="text-lg font-bold">Confirmar Exclusão</h3>
+                </div>
+                <p class="text-sm text-on-surface-variant">
+                    Tem certeza que deseja excluir o registro deste visitante? Esta ação não pode ser desfeita.
+                </p>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button 
+                        wire:click="$set('showDeleteModal', false)" 
+                        class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        wire:click="deleteVisitor" 
+                        class="px-4 py-2 bg-error text-white text-xs font-bold rounded-xl hover:bg-error/90 transition-colors cursor-pointer"
+                    >
+                        Sim, Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
