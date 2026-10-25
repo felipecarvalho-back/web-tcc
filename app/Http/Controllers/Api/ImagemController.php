@@ -66,6 +66,7 @@ class ImagemController extends Controller
                 ->keyBy(fn ($v): string => str_replace('-', '', strtoupper((string) $v->placa)));
 
             foreach ($registros as $registro) {
+                /** @var RegistroAcesso $registro */
                 if (! $registro->condutor && ! $registro->veiculo?->condutor) {
                     $chavePlaca = str_replace('-', '', strtoupper((string) ($registro->placa_corrigida ?: $registro->placa_registro)));
                     $veiculoEncontrado = $veiculosPorPlaca->get($chavePlaca);

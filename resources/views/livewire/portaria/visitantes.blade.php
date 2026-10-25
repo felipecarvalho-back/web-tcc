@@ -14,312 +14,185 @@
                 </span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-                Cadastro Rápido de Visitantes
+                Gestão e Controle de Visitantes
             </h1>
             <p class="text-sm text-on-surface-variant">
-                Registro e gerenciamento de visitantes e veículos não credenciados para autorização do campus.
+                Consulta, filtro e liberação rápida de visitantes e veículos não credenciados no campus.
             </p>
         </div>
 
-        <div class="flex items-center gap-3">
-            <a 
+        <div class="flex flex-wrap items-center gap-3">
+            <a
                 href="{{ route('portaria.monitoramento') }}"
-                class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                wire:navigate
+                class="px-4 py-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
             >
                 <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                <span>Voltar ao Monitoramento</span>
+                <span>Monitoramento</span>
             </a>
+
+            <button
+                type="button"
+                wire:click="openCreateModal"
+                class="px-4 py-2.5 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+            >
+                <span class="material-symbols-outlined text-[18px]">person_add</span>
+                <span>+ Novo Visitante</span>
+            </button>
         </div>
     </div>
 
-    <!-- GRID: FORMULÁRIO PRINCIPAL & VISITANTES RECENTES -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- FORMULÁRIO DE CADASTRO / EDIÇÃO (7 COLUNAS) -->
-        <div class="lg:col-span-7 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col gap-5">
-            <div class="flex items-center justify-between pb-4 border-b border-surface-container">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px]">{{ $isEditing ? 'edit_square' : 'how_to_reg' }}</span>
-                    </div>
-                    <div>
-                        <h2 class="text-base font-bold text-on-surface">
-                            {{ $isEditing ? 'Editar Registro de Visitante' : 'Formulário de Entrada Imediata' }}
-                        </h2>
-                        <span class="text-xs text-on-surface-variant">Preencha os dados do condutor e do veículo</span>
-                    </div>
-                </div>
-                <span class="text-[11px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
-                    * Campos Obrigatórios
-                </span>
-            </div>
-
-            <form wire:submit="registerAndReleaseGate" class="flex flex-col gap-4">
-                <!-- LINHA 1: CPF & PLACA DO CARRO -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- CPF -->
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface flex items-center justify-between" for="cpf">
-                            <span>CPF do Visitante *</span>
-                            <span class="text-on-surface-variant font-normal text-[11px]">Apenas números</span>
-                        </label>
-                        <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">badge</span>
-                            <input 
-                                wire:model="cpf" 
-                                id="cpf" 
-                                type="text" 
-                                placeholder="000.000.000-00" 
-                                class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors font-mono"
-                            />
-                        </div>
-                        @error('cpf') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
-                    </div>
-
-                    <!-- Placa do Carro -->
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface" for="plate">
-                            Placa do Carro *
-                        </label>
-                        <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">directions_car</span>
-                            <input 
-                                wire:model="plate" 
-                                id="plate" 
-                                type="text" 
-                                placeholder="Ex: BRA-2E19" 
-                                class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors font-mono uppercase tracking-wider"
-                            />
-                        </div>
-                        @error('plate') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-
-                <!-- LINHA 2: MOTIVO DA VISITA -->
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-on-surface" for="visitReason">
-                        Motivo da Visita *
-                    </label>
-                    <div class="relative flex items-center">
-                        <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">chat</span>
-                        <input 
-                            wire:model="visitReason" 
-                            id="visitReason" 
-                            type="text" 
-                            placeholder="Ex: Reunião com Coordenação DSM, Banca de TCC, Entrega técnica..." 
-                            class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors"
-                        />
-                    </div>
-                    @error('visitReason') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- LINHA 3: NOME COMPLETO & MODELO DO VEÍCULO -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Nome Completo -->
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface" for="visitorName">
-                            Nome Completo do Visitante
-                        </label>
-                        <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">person</span>
-                            <input 
-                                wire:model="visitorName" 
-                                id="visitorName" 
-                                type="text" 
-                                placeholder="Ex: João Ferreira da Silva" 
-                                class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors"
-                            />
-                        </div>
-                    </div>
-
-                    <!-- Modelo / Cor do Veículo -->
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface" for="vehicleModel">
-                            Modelo / Cor do Veículo
-                        </label>
-                        <div class="relative flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">minor_crash</span>
-                            <input 
-                                wire:model="vehicleModel" 
-                                id="vehicleModel" 
-                                type="text" 
-                                placeholder="Ex: Chevrolet Onix Branco" 
-                                class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LINHA 4: DESTINO / SETOR & TEMPO DE PERMANÊNCIA -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface" for="department">
-                            Setor / Bloco de Destino
-                        </label>
-                        <select 
-                            wire:model="department" 
-                            id="department" 
-                            class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
-                        >
-                            <option value="DSM - Coordenação DSM">Bloco A • Coordenação DSM</option>
-                            <option value="GTI - Coordenação GTI">Bloco A • Coordenação GTI</option>
-                            <option value="Direção / Recursos Humanos">Bloco Administrativo • Direção & RH</option>
-                            <option value="Secretaria Acadêmica">Bloco Administrativo • Secretaria</option>
-                            <option value="Laboratórios Técnicos">Bloco B • Laboratórios de Informática</option>
-                            <option value="Biblioteca / Auditório">Bloco C • Biblioteca & Auditório</option>
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-on-surface" for="estimatedStay">
-                            Permanência Estimada
-                        </label>
-                        <select 
-                            wire:model="estimatedStay" 
-                            id="estimatedStay" 
-                            class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
-                        >
-                            <option value="30 minutos">Até 30 minutos (Rápida)</option>
-                            <option value="1 hora">Até 1 hora</option>
-                            <option value="2 horas">Até 2 horas</option>
-                            <option value="Período Integral">Período Integral (Manhã / Noite)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- BOTÕES DE AÇÃO -->
-                <div class="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-surface-container">
-                    @if ($isEditing)
-                        <button 
-                            type="button" 
-                            wire:click="cancelEdit"
-                            class="w-full sm:w-auto h-12 px-5 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-sm rounded-xl transition-all cursor-pointer"
-                        >
-                            Cancelar Edição
-                        </button>
-                    @endif
-
-                    <button 
-                        type="submit" 
-                        wire:loading.attr="disabled"
-                        class="w-full sm:flex-1 h-12 bg-primary hover:bg-primary-container disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[22px]">{{ $isEditing ? 'save' : 'garage' }}</span>
-                        <span>{{ $isEditing ? 'Salvar Alterações' : 'Cadastrar e Liberar Cancela Imediatamente' }}</span>
-                    </button>
-                </div>
-            </form>
+    <!-- BARRA DE PESQUISA & FILTROS (BUSCA, PERÍODO E STATUS) -->
+    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-surface-container shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+        <!-- Busca por Placa, CPF ou Nome (6 colunas) -->
+        <div class="lg:col-span-6 relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">search</span>
+            <input
+                wire:model.live.debounce.300ms="searchQuery"
+                type="text"
+                placeholder="Pesquisar por placa, CPF ou nome do visitante..."
+                class="w-full h-10 pl-10 pr-4 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-medium rounded-xl focus:outline-none focus:border-primary transition-colors"
+            />
         </div>
 
-        <!-- LISTA LATERAL: VISITANTES REGISTRADOS HOJE (5 COLUNAS) -->
-        <div class="lg:col-span-5 bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col gap-4">
-            <div class="flex items-center justify-between pb-3 border-b border-surface-container">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[22px]">history</span>
-                    <h3 class="text-base font-bold text-on-surface">Visitantes no Campus Hoje</h3>
-                </div>
-                <span class="text-xs font-bold text-on-surface-variant font-mono">
-                    {{ count($recentVisitors) }} registros
-                </span>
-            </div>
+        <!-- Filtro de Período (3 colunas) -->
+        <div class="lg:col-span-3">
+            <select
+                wire:model.live="dateFilter"
+                class="w-full h-10 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+            >
+                <option value="hoje">Período: Hoje</option>
+                <option value="ontem">Período: Ontem</option>
+                <option value="7dias">Últimos 7 dias</option>
+                <option value="mes">Este Mês</option>
+                <option value="todos">Todo o Histórico</option>
+            </select>
+        </div>
 
-            <div class="flex flex-col gap-3 overflow-y-auto max-h-[580px] pr-1">
-                @forelse ($recentVisitors as $visitor)
-                    <div wire:key="visitor-{{ $visitor->id }}" class="p-4 rounded-xl border border-surface-container bg-surface-container-low/60 hover:bg-surface-container-low transition-colors flex flex-col gap-3">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <x-mercosul-plate :plate="$visitor->placa_veiculo" size="sm" />
-                                <div class="flex flex-col min-w-0">
-                                    <span class="text-xs font-bold text-on-surface truncate">{{ $visitor->nome }}</span>
-                                    <span class="text-[11px] text-on-surface-variant font-mono">{{ $visitor->cpf }}</span>
+        <!-- Filtro de Status (3 colunas) -->
+        <div class="lg:col-span-3">
+            <select
+                wire:model.live="statusFilter"
+                class="w-full h-10 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+            >
+                <option value="todos">Status: Todos</option>
+                <option value="ativo">No Campus (Ativos)</option>
+                <option value="finalizado">Saída Registrada</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- TABELA DE VISITANTES -->
+    <div class="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
+        <div class="overflow-x-auto w-full">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container/60 text-on-surface-variant uppercase text-[11px] font-bold tracking-wider h-11 border-b border-surface-container">
+                        <th class="py-2.5 px-4">Placa</th>
+                        <th class="py-2.5 px-4">Visitante / CPF</th>
+                        <th class="py-2.5 px-4">Setor & Motivo da Visita</th>
+                        <th class="py-2.5 px-4">Entrada / Saída</th>
+                        <th class="py-2.5 px-4">Status</th>
+                        <th class="py-2.5 px-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-container text-xs">
+                    @forelse ($filteredVisitors as $item)
+                        <tr wire:key="visitor-row-{{ $item->id }}" class="hover:bg-surface-container-low/60 transition-colors">
+                            <!-- Placa -->
+                            <td class="py-3 px-4 whitespace-nowrap">
+                                <x-mercosul-plate :plate="$item->placa_veiculo" size="sm" />
+                            </td>
+
+                            <!-- Visitante / CPF -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+                                        {{ substr($item->nome, 0, 2) }}
+                                    </div>
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="font-bold text-on-surface text-sm truncate">{{ $item->nome }}</span>
+                                        <span class="text-[11px] text-on-surface-variant font-mono">CPF: {{ $item->cpf }}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            </td>
 
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                @if ($visitor->status === 'ativo')
-                                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                        No Campus
+                            <!-- Setor & Motivo -->
+                            <td class="py-3 px-4 max-w-[260px]">
+                                <div class="font-semibold text-on-surface truncate">{{ $item->setor_destino }}</div>
+                                <div class="text-[11px] text-on-surface-variant truncate" title="{{ $item->destino_motivo }}">
+                                    {{ $item->destino_motivo }}
+                                </div>
+                            </td>
+
+                            <!-- Entrada / Saída -->
+                            <td class="py-3 px-4 font-mono whitespace-nowrap">
+                                <div class="text-on-surface font-semibold">
+                                    {{ $item->created_at->format('d/m H:i:s') }}
+                                </div>
+                                @if ($item->data_hora_saida)
+                                    <div class="text-[11px] text-on-surface-variant">
+                                        Saída: {{ $item->data_hora_saida->format('H:i:s') }}
+                                    </div>
+                                @else
+                                    <div class="text-[11px] text-emerald-700 font-sans font-semibold">
+                                        Previsto: {{ $item->permanencia_estimada }}
+                                    </div>
+                                @endif
+                            </td>
+
+                            <!-- Status -->
+                            <td class="py-3 px-4 whitespace-nowrap">
+                                @if ($item->status === 'ativo')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                        <span>No Campus</span>
                                     </span>
                                 @else
-                                    <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant text-[10px] font-bold">
-                                        Finalizado
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                        <span>Finalizado</span>
                                     </span>
                                 @endif
+                            </td>
 
-                                <!-- BOTÕES DE AÇÕES (EDITAR / EXCLUIR) -->
-                                <button 
-                                    wire:click="editVisitor({{ $visitor->id }})" 
-                                    title="Editar Visitante" 
-                                    class="p-1 text-on-surface-variant hover:text-primary rounded-lg transition-colors cursor-pointer"
+                            <!-- Ações -->
+                            <td class="py-3 px-4 text-right whitespace-nowrap">
+                                <button
+                                    type="button"
+                                    wire:click="editVisitor({{ $item->id }})"
+                                    title="Editar Registro"
+                                    class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer"
                                 >
                                     <span class="material-symbols-outlined text-[18px]">edit</span>
                                 </button>
-                                <button 
-                                    wire:click="confirmDelete({{ $visitor->id }})" 
-                                    title="Excluir Registro" 
-                                    class="p-1 text-on-surface-variant hover:text-error rounded-lg transition-colors cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-on-surface-variant">
+                                <span class="material-symbols-outlined text-[40px] text-on-surface-variant/60 mb-2">person_off</span>
+                                <p class="text-sm font-semibold">Nenhum registro de visitante encontrado para os filtros selecionados.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
-                        <div class="text-xs text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg border border-surface-container/60 space-y-1">
-                            <div class="flex justify-between">
-                                <span class="font-semibold text-on-surface">Motivo:</span>
-                                <span class="text-right truncate max-w-[180px]">{{ $visitor->destino_motivo }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-semibold text-on-surface">Entrada:</span>
-                                <span class="font-mono">{{ $visitor->created_at->format('H:i:s') }}</span>
-                            </div>
-                        </div>
+        <div class="p-4 bg-surface-container-low border-t border-surface-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-on-surface-variant">
+            <span>
+                Mostrando <strong class="text-on-surface font-bold">{{ $filteredVisitors->count() }}</strong> de <strong class="text-on-surface font-bold">{{ $filteredVisitors->total() }}</strong> registros de passagens de visitantes.
+            </span>
 
-                        @if ($visitor->status === 'ativo')
-                            <button 
-                                type="button" 
-                                wire:click="markVisitorExit({{ $visitor->id }})"
-                                class="w-full py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                            >
-                                <span class="material-symbols-outlined text-[16px]">logout</span>
-                                <span>Marcar Saída do Visitante</span>
-                            </button>
-                        @endif
-                    </div>
-                @empty
-                    <div class="p-6 text-center text-on-surface-variant">
-                        <p class="text-xs">Nenhum visitante registrado até o momento hoje.</p>
-                    </div>
-                @endforelse
-            </div>
+            @if ($filteredVisitors->hasPages())
+                <div>
+                    {{ $filteredVisitors->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
-    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
-    @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full border border-surface-container shadow-xl flex flex-col gap-4">
-                <div class="flex items-center gap-3 text-error">
-                    <span class="material-symbols-outlined text-[28px]">warning</span>
-                    <h3 class="text-lg font-bold">Confirmar Exclusão</h3>
-                </div>
-                <p class="text-sm text-on-surface-variant">
-                    Tem certeza que deseja excluir o registro deste visitante? Esta ação não pode ser desfeita.
-                </p>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button 
-                        wire:click="$set('showDeleteModal', false)" 
-                        class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        wire:click="deleteVisitor" 
-                        class="px-4 py-2 bg-error text-white text-xs font-bold rounded-xl hover:bg-error/90 transition-colors cursor-pointer"
-                    >
-                        Sim, Excluir
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
+    <!-- MODAL DE CADASTRO / EDIÇÃO DE VISITANTE (ARQUIVO SEPARADO) -->
+    @include('livewire.portaria.partials.modal-visitante')
 </div>

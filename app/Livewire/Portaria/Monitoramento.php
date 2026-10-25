@@ -4,16 +4,23 @@ namespace App\Livewire\Portaria;
 
 use App\Enums\StatusAcesso;
 use App\Models\RegistroAcesso;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
+/**
+ * @property-read LengthAwarePaginator $filteredRecords
+ */
 #[Layout('layouts.app')]
 #[Title('Monitoramento de Portaria - Sentinela FATEC')]
 class Monitoramento extends Component
 {
+    use WithPagination;
+
     public string $filterDate = 'hoje';
 
     public string $filterPlate = '';
@@ -21,6 +28,26 @@ class Monitoramento extends Component
     public string $filterCategory = 'todos';
 
     public string $filterStatus = 'todos';
+
+    public function updatedFilterDate(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterPlate(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterCategory(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPage();
+    }
 
     // Estados dos Modais Operacionais
     public bool $showVerificationModal = false;
@@ -83,26 +110,13 @@ class Monitoramento extends Component
     }
 
     /**
-     * Consulta e formata os registros filtrados diretamente no banco de dados usando Query Scopes.
-     *
-     * @return array<int, array<string, mixed>>
+     * Consulta e formata os registros filtrados e paginados diretamente no banco de dados usando Query Scopes.
      */
     #[Computed]
-    public function filteredRecords(): array
+    public function filteredRecords(): LengthAwarePaginator
     {
-        if ($this->filterCategory !== 'todos' && $this->filterCategory !== 'visitante') {
-            return [];
-        }
-
-        return RegistroAcesso::query()
-            ->with(['operador:id,nome'])
-            ->filtrarData($this->filterDate)
-            ->filtrarPlaca($this->filterPlate)
-            ->filtrarStatus($this->filterStatus)
-            ->latest('data_hora_entrada')
-            ->latest('id')
-            ->limit(50)
-            ->get([
+        $query = RegistroAcesso::query()
+            ->select([
                 'id',
                 'veiculo_id',
                 'condutor_id',
@@ -116,8 +130,30 @@ class Monitoramento extends Component
                 'status',
                 'justificativa',
             ])
-            ->map(fn ($registro): array => $registro->toMonitoringArray())
-            ->all();
+            ->with(['operador:id,nome', 'condutor:id,nome,tipo']);
+
+        if ($this->filterCategory !== 'todos') {
+            if ($this->filterCategory === 'visitante') {
+                $query->where(function ($q): void {
+                    $q->whereNull('condutor_id')
+                        ->orWhereHas('condutor', fn ($cq) => $cq->where('tipo', 'visitante'));
+                });
+            } else {
+                $query->whereHas('condutor', fn ($cq) => $cq->where('tipo', $this->filterCategory));
+            }
+        }
+
+        return $query
+            ->filtrarData($this->filterDate)
+            ->filtrarPlaca($this->filterPlate)
+            ->filtrarStatus($this->filterStatus)
+            ->latest('data_hora_entrada')
+            ->latest('id')
+            ->paginate(10)
+            ->through(function ($registro): array {
+                /** @var RegistroAcesso $registro */
+                return $registro->toMonitoringArray();
+            });
     }
 
     /**
@@ -162,7 +198,7 @@ class Monitoramento extends Component
      */
     public function openVerificationModal(int $id): void
     {
-        $registro = RegistroAcesso::with(['operador:id,nome'])->find($id);
+        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo'])->find($id);
         if (! $registro) {
             return;
         }
@@ -228,7 +264,7 @@ class Monitoramento extends Component
      */
     public function openDriverConfirmationModal(int $id): void
     {
-        $registro = RegistroAcesso::with(['operador:id,nome'])->find($id);
+        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo'])->find($id);
         if (! $registro) {
             return;
         }

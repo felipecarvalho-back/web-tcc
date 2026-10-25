@@ -142,8 +142,8 @@ class RegistroAcesso extends Model
             'id' => $this->id,
             'plate' => $placaExibida,
             'raw_ocr' => $this->placa_registro,
-            'driver_name' => $semPlaca ? 'Placa Não Identificada' : 'Condutor Não Vinculado',
-            'category' => 'visitante',
+            'driver_name' => $this->condutor?->nome ?? ($semPlaca ? 'Placa Não Identificada' : 'Condutor Não Vinculado'),
+            'category' => $this->condutor?->tipo ?? 'visitante',
             'category_label' => implode(' • ', $detalhes),
             'registered_at' => $this->data_hora_entrada?->format('H:i:s') ?? '--:--:--',
             'time_ago' => $this->data_hora_entrada?->locale('pt_BR')->diffForHumans() ?? 'Agora mesmo',
@@ -151,6 +151,7 @@ class RegistroAcesso extends Model
             'status_label' => $statusEnum->label($temSaida, $temPlacaCorrigida, $semPlaca),
             'image_url' => $this->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
             'is_registered' => (bool) $this->veiculo_id,
+            'is_visitor' => $this->condutor?->tipo === 'visitante',
         ];
     }
 

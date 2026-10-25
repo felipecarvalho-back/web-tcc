@@ -226,16 +226,18 @@
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                     @if ($record['status'] === 'autorizado')
-                                        <!-- Carro Identificado: Confirmar Condutor cadastrado via código de acesso -->
-                                        <button
-                                            type="button"
-                                            wire:click="openDriverConfirmationModal({{ $record['id'] }})"
-                                            class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-                                            title="Confirmar se o motorista é o condutor cadastrado via código de acesso"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
-                                            <span>Confirmar Condutor</span>
-                                        </button>
+                                        @if (! ($record['is_visitor'] ?? false))
+                                            <!-- Carro Identificado (Professor/Funcionário/Prestador): Confirmar Condutor via código de acesso -->
+                                            <button
+                                                type="button"
+                                                wire:click="openDriverConfirmationModal({{ $record['id'] }})"
+                                                class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                                                title="Confirmar se o motorista é o condutor cadastrado via código de acesso"
+                                            >
+                                                <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+                                                <span>Confirmar Condutor</span>
+                                            </button>
+                                        @endif
 
                                         <!-- Marcar Saída -->
                                         <button
@@ -247,6 +249,10 @@
                                             <span class="material-symbols-outlined text-[15px]">output</span>
                                             <span>Marcar Saída</span>
                                         </button>
+                                    @elseif ($record['status'] === 'saida')
+                                        <span class="text-[11px] font-semibold text-on-surface-variant px-2 py-1">
+                                            Saída Concluída
+                                        </span>
                                     @else
                                         <!-- Placa NÃO Identificada / Com Erro / Não Cadastrada: Botão Único de Dupla Verificação -->
                                         <button
@@ -277,14 +283,13 @@
         <!-- Rodapé da Tabela -->
         <div class="p-4 bg-surface-container-low border-t border-surface-container flex flex-col sm:flex-row items-center justify-between gap-3">
             <span class="text-xs text-on-surface-variant">
-                Exibindo <strong class="text-on-surface font-bold">{{ count($filteredRecords) }}</strong> registros em monitoramento ativo.
+                Exibindo <strong class="text-on-surface font-bold">{{ $filteredRecords->count() }}</strong> de <strong class="text-on-surface font-bold">{{ $filteredRecords->total() }}</strong> registros em monitoramento ativo.
             </span>
-            <div class="flex items-center gap-1">
-                <button type="button" class="px-3 py-1 rounded-lg bg-surface-container text-xs font-semibold text-on-surface cursor-pointer">Anterior</button>
-                <button type="button" class="px-3 py-1 rounded-lg bg-primary text-xs font-bold text-white cursor-pointer">1</button>
-                <button type="button" class="px-3 py-1 rounded-lg bg-surface-container text-xs font-semibold text-on-surface cursor-pointer">2</button>
-                <button type="button" class="px-3 py-1 rounded-lg bg-surface-container text-xs font-semibold text-on-surface cursor-pointer">Próxima</button>
-            </div>
+            @if ($filteredRecords->hasPages())
+                <div>
+                    {{ $filteredRecords->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
