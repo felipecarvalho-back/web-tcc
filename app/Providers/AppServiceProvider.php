@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -25,6 +26,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (! app()->runningInConsole()) {
+            set_time_limit(120);
+            ini_set('max_execution_time', '120');
+        }
+
+        Http::globalOptions([
+            'timeout' => 120,
+            'connect_timeout' => 30,
+        ]);
+
         $this->configureDefaults();
 
         if (app()->isProduction() || request()->header('X-Forwarded-Proto') === 'https') {

@@ -88,6 +88,8 @@ class ImagemController extends Controller
 
     public function enviar(Request $request): JsonResponse
     {
+        set_time_limit(120);
+
         // 1. Validação restrita apenas a PNG e JPG/JPEG (até 10MB para fotos de smartphones)
         $request->validate([
             'foto' => [

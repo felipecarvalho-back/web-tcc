@@ -23,7 +23,7 @@ class PlacaOcrService
         try {
             $filename = $nomeArquivo ?? basename($caminhoArquivo);
 
-            $request = Http::timeout(30);
+            $request = Http::timeout(120);
 
             if (! empty($token)) {
                 $request = $request->withToken($token);

@@ -51,7 +51,7 @@ class CloudinaryService
 
             $filename = $nomeArquivo ?? basename($caminhoArquivo);
 
-            $response = Http::timeout(30)
+            $response = Http::timeout(120)
                 ->attach('file', file_get_contents($caminhoArquivo), $filename)
                 ->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", [
                     'api_key' => $apiKey,
