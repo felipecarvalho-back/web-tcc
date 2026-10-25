@@ -55,7 +55,9 @@
                     wire:model="correctedPlate"
                     id="corrected-plate-input"
                     type="text" 
-                    placeholder="Ex: BRA-2E19" 
+                    x-mask="aaa-9*99"
+                    maxlength="8"
+                    placeholder="AAA-0A00" 
                     class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider text-center"
                 />
                 <p class="text-[11px] text-on-surface-variant">

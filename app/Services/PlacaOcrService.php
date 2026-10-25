@@ -59,16 +59,6 @@ class PlacaOcrService
      */
     public function formatarPlaca(?string $placa): string
     {
-        if (empty($placa)) {
-            return RegistroAcesso::PLACA_NAO_IDENTIFICADA;
-        }
-
-        $limpa = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $placa));
-
-        if (strlen($limpa) === 7) {
-            return substr($limpa, 0, 3).'-'.substr($limpa, 3);
-        }
-
-        return substr($limpa ?: RegistroAcesso::PLACA_NAO_IDENTIFICADA, 0, 10);
+        return RegistroAcesso::formatarPlaca($placa);
     }
 }

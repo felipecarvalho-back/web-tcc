@@ -80,8 +80,10 @@
                     <input
                         wire:model.live.debounce.300ms="filterPlate"
                         type="text"
-                        placeholder="Ex: BRA, ABC..."
-                        class="bg-transparent w-full text-xs font-semibold outline-none uppercase placeholder:normal-case placeholder:text-on-surface-variant/70"
+                        x-mask="aaa-9*99"
+                        maxlength="8"
+                        placeholder="Ex: BRA-2E19"
+                        class="bg-transparent w-full text-xs font-semibold outline-none uppercase placeholder:normal-case placeholder:text-on-surface-variant/70 font-mono"
                     />
                 </div>
             </div>

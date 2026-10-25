@@ -139,11 +139,31 @@ class RegistroAcesso extends Model
     }
 
     /**
+     * Formata qualquer placa de 7 caracteres alfanuméricos no padrão AAA-0X00 com hífen.
+     */
+    public static function formatarPlaca(?string $placa): string
+    {
+        $valor = strtoupper(trim((string) $placa));
+        if ($valor === '' || $valor === self::PLACA_NAO_IDENTIFICADA) {
+            return $valor ?: self::PLACA_NAO_IDENTIFICADA;
+        }
+
+        $limpa = (string) preg_replace('/[^A-Z0-9]/', '', $valor);
+        if (strlen($limpa) === 7) {
+            return substr($limpa, 0, 3).'-'.substr($limpa, 3);
+        }
+
+        return substr($valor, 0, 8);
+    }
+
+    /**
      * Retorna a placa prioritária para exibição (corrigida manualmente ou lida na entrada).
      */
     public function placaExibida(): string
     {
-        return (string) ($this->placa_corrigida ?: $this->placa_registro);
+        $placa = (string) ($this->placa_corrigida ?: $this->placa_registro);
+
+        return self::formatarPlaca($placa);
     }
 
     /**

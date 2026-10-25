@@ -226,7 +226,9 @@ class Monitoramento extends Component
         $registro = RegistroAcesso::find($targetId);
 
         if ($registro) {
-            $novaPlaca = strtoupper(trim($this->correctedPlate));
+            $novaPlaca = trim($this->correctedPlate) !== ''
+                ? RegistroAcesso::formatarPlaca($this->correctedPlate)
+                : '';
             $placaOriginal = $registro->placa_registro;
 
             if ($novaPlaca !== '' && $novaPlaca !== $placaOriginal) {

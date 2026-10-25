@@ -236,7 +236,7 @@ class Visitantes extends Component
     public function registerAndReleaseGate(): void
     {
         $this->cpf = trim($this->cpf);
-        $this->plate = strtoupper(trim($this->plate));
+        $this->plate = trim($this->plate) !== '' ? RegistroAcesso::formatarPlaca($this->plate) : '';
         $this->validate();
 
         $nomeVisitante = trim($this->visitorName) !== '' ? trim($this->visitorName) : 'Visitante Identificado';
