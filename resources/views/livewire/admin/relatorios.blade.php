@@ -18,8 +18,19 @@
             </p>
         </div>
 
-        <!-- BOTÃO DE DESTAQUE: GERAR PDF -->
+        <!-- BOTÕES DE EXPORTAÇÃO -->
         <div class="flex items-center gap-3">
+            <button 
+                type="button" 
+                wire:click="exportCsv"
+                wire:loading.attr="disabled"
+                class="px-4 py-3 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-2 border border-surface-container-highest shadow-xs hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer disabled:opacity-50"
+            >
+                <span class="material-symbols-outlined text-[20px] text-emerald-700">table_view</span>
+                <span wire:loading.remove wire:target="exportCsv">Exportar Planilha (CSV)</span>
+                <span wire:loading wire:target="exportCsv">Gerando Planilha...</span>
+            </button>
+
             <button 
                 type="button" 
                 onclick="window.print()"
@@ -38,7 +49,7 @@
                 <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
                 <h2 class="text-xs font-bold text-on-surface uppercase tracking-wider">Filtros de Tráfego e Assiduidade Docente</h2>
             </div>
-            @if ($dayOfWeekFilter !== 'todos' || !empty(trim($driverSearch)))
+            @if ($dayOfWeekFilter !== 'todos' || !empty(trim($driverSearch)) || $categoryFilter !== 'todos' || $eventType !== 'todos' || $operatorFilter !== 'todos')
                 <button 
                     type="button" 
                     wire:click="clearAssiduidadeFilters"
@@ -50,7 +61,7 @@
             @endif
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3.5">
             <!-- Buscar Professor / Condutor / Placa -->
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold text-on-surface-variant uppercase flex items-center gap-1">
@@ -85,6 +96,7 @@
                     <option value="quinta">Quinta-feira</option>
                     <option value="sexta">Sexta-feira</option>
                     <option value="sabado">Sábado</option>
+                    <option value="domingo">Domingo</option>
                 </select>
             </div>
 
@@ -135,6 +147,20 @@
                     <option value="saida">Apenas Saídas</option>
                 </select>
             </div>
+
+            <!-- Operador da Guarita -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold text-on-surface-variant uppercase">Operador</label>
+                <select 
+                    wire:model.live="operatorFilter" 
+                    class="h-10 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+                >
+                    <option value="todos">Todos os Operadores</option>
+                    @foreach ($operators as $op)
+                        <option value="{{ $op['nome'] }}">{{ $op['nome'] }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <!-- Banner de Feedback do Filtro de Assiduidade -->
@@ -164,24 +190,24 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
             <span class="text-[11px] font-bold text-on-surface-variant uppercase">Registros Filtrados</span>
-            <div class="text-2xl font-extrabold text-on-surface font-mono">{{ count($filteredData) }}</div>
+            <div class="text-2xl font-extrabold text-on-surface font-mono">{{ $reportStats['total'] }}</div>
         </div>
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
             <span class="text-[11px] font-bold text-on-surface-variant uppercase">Total Entradas</span>
             <div class="text-2xl font-extrabold text-emerald-700 font-mono">
-                {{ count(array_filter($filteredData, fn($i) => $i['event'] === 'entrada')) }}
+                {{ $reportStats['entradas'] }}
             </div>
         </div>
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
             <span class="text-[11px] font-bold text-on-surface-variant uppercase">Total Saídas</span>
             <div class="text-2xl font-extrabold text-amber-700 font-mono">
-                {{ count(array_filter($filteredData, fn($i) => $i['event'] === 'saida')) }}
+                {{ $reportStats['saidas'] }}
             </div>
         </div>
         <div class="p-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs">
             <span class="text-[11px] font-bold text-on-surface-variant uppercase">Docentes Identificados</span>
             <div class="text-2xl font-extrabold text-primary font-mono">
-                {{ count(array_filter($filteredData, fn($i) => ($i['category'] ?? '') === 'professor')) }}
+                {{ $reportStats['docentes'] }}
             </div>
         </div>
     </div>
@@ -279,6 +305,12 @@
                                         <span>{{ $item['event_label'] }}</span>
                                     </span>
                                 @endif
+
+                                @if (!empty($item['permanencia']))
+                                    <span class="text-[11px] text-on-surface-variant block mt-0.5 font-medium">
+                                        Tempo: <strong class="text-on-surface font-semibold">{{ $item['permanencia'] }}</strong>
+                                    </span>
+                                @endif
                             </td>
 
                             <td class="py-3 px-4 text-on-surface-variant">
@@ -291,7 +323,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="p-8 text-center text-on-surface-variant">
+                            <td colspan="8" class="p-8 text-center text-on-surface-variant">
                                 <p class="text-sm font-semibold">Nenhum registro encontrado para os filtros selecionados.</p>
                             </td>
                         </tr>
