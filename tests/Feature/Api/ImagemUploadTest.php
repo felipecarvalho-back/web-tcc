@@ -1,11 +1,16 @@
 <?php
 
+use App\Enums\StatusAcesso;
+use App\Enums\TipoOcupante;
 use App\Livewire\Portaria\Monitoramento;
+use App\Models\Condutor;
 use App\Models\RegistroAcesso;
 use App\Models\Usuario;
+use App\Models\Veiculo;
 use App\Services\CloudinaryService;
 use App\Services\JwtService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -154,4 +159,77 @@ test('retorna erro de validacao quando arquivo nao for enviado ou invalido', fun
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['foto']);
+});
+
+test('retorna historico de fotos tiradas no dia atual com horario exato, placa e condutor', function () {
+    $condutor = Condutor::create([
+        'nome' => 'Prof. Dr. Marcos Souza',
+        'cpf' => '111.222.333-44',
+        'tipo' => 'professor',
+        'ativo' => true,
+    ]);
+
+    Veiculo::create([
+        'condutor_id' => $condutor->id,
+        'placa' => 'BRA-2E19',
+        'modelo' => 'Honda Civic',
+        'cor' => 'Prata',
+        'ativo' => true,
+    ]);
+
+    $horarioComPlaca = Carbon::today()->setTime(14, 32, 5);
+    $horarioSemPlaca = Carbon::today()->setTime(15, 10, 20);
+
+    // Registro de ontem (não deve aparecer no histórico de hoje)
+    RegistroAcesso::create([
+        'placa_registro' => 'OLD-9999',
+        'data_hora_entrada' => Carbon::yesterday()->setTime(10, 0, 0),
+        'foto_entrada_path' => 'https://exemplo.com/ontem.jpg',
+        'status' => StatusAcesso::Finalizado,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+    ]);
+
+    // Registro 1 de hoje: placa identificada e vinculada ao veículo do condutor
+    RegistroAcesso::create([
+        'placa_registro' => 'BRA-2E19',
+        'data_hora_entrada' => $horarioComPlaca,
+        'foto_entrada_path' => 'https://exemplo.com/foto1.jpg',
+        'status' => StatusAcesso::Pendente,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+    ]);
+
+    // Registro 2 de hoje: placa não identificada
+    RegistroAcesso::create([
+        'placa_registro' => RegistroAcesso::PLACA_NAO_IDENTIFICADA,
+        'data_hora_entrada' => $horarioSemPlaca,
+        'foto_entrada_path' => 'https://exemplo.com/foto2.jpg',
+        'status' => StatusAcesso::NaoCadastrado,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+    ]);
+
+    $response = $this->withHeaders([
+        'Authorization' => 'Bearer '.$this->token,
+    ])->getJson('/api/historico');
+
+    $response->assertOk()
+        ->assertJson([
+            'status' => 'success',
+            'total' => 2,
+            'historico' => [
+                [
+                    'foto' => 'https://exemplo.com/foto2.jpg',
+                    'horario' => '15:10:20',
+                    'placa' => null,
+                    'placa_identificada' => false,
+                    'condutor' => 'Condutor não identificado',
+                ],
+                [
+                    'foto' => 'https://exemplo.com/foto1.jpg',
+                    'horario' => '14:32:05',
+                    'placa' => 'BRA-2E19',
+                    'placa_identificada' => true,
+                    'condutor' => 'Prof. Dr. Marcos Souza',
+                ],
+            ],
+        ]);
 });

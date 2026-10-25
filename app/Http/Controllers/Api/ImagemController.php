@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Enums\StatusAcesso;
 use App\Enums\TipoOcupante;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\HistoricoFotoResource;
 use App\Models\RegistroAcesso;
+use App\Models\Veiculo;
 use App\Services\CloudinaryService;
 use App\Services\PlacaOcrService;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +23,67 @@ class ImagemController extends Controller
         protected CloudinaryService $cloudinaryService,
         protected PlacaOcrService $placaOcrService
     ) {}
+
+    /**
+     * Retorna o histórico das fotos tiradas no dia atual com horário exato, placa e condutor.
+     */
+    public function historico(): JsonResponse
+    {
+        $registros = RegistroAcesso::query()
+            ->with([
+                'condutor:id,nome,tipo',
+                'veiculo:id,placa,condutor_id',
+                'veiculo.condutor:id,nome,tipo',
+            ])
+            ->filtrarData('hoje')
+            ->latest('data_hora_entrada')
+            ->latest('id')
+            ->get([
+                'id',
+                'veiculo_id',
+                'condutor_id',
+                'placa_registro',
+                'placa_corrigida',
+                'data_hora_entrada',
+                'foto_entrada_path',
+                'status',
+            ]);
+
+        // Caso existam registros sem vínculo direto de condutor_id/veiculo_id, busca o condutor pela placa na tabela veiculos
+        $placasSemCondutor = $registros
+            ->filter(fn ($r) => ! $r->condutor && ! $r->veiculo?->condutor)
+            ->map(fn ($r): string => (string) ($r->placa_corrigida ?: $r->placa_registro))
+            ->filter(fn (string $placa) => $placa !== '' && $placa !== RegistroAcesso::PLACA_NAO_IDENTIFICADA)
+            ->flatMap(fn (string $placa) => [$placa, str_replace('-', '', $placa)])
+            ->unique()
+            ->values();
+
+        if ($placasSemCondutor->isNotEmpty()) {
+            $veiculosPorPlaca = Veiculo::query()
+                ->with(['condutor:id,nome,tipo'])
+                ->whereIn('placa', $placasSemCondutor)
+                ->get(['id', 'placa', 'condutor_id'])
+                ->keyBy(fn ($v): string => str_replace('-', '', strtoupper((string) $v->placa)));
+
+            foreach ($registros as $registro) {
+                if (! $registro->condutor && ! $registro->veiculo?->condutor) {
+                    $chavePlaca = str_replace('-', '', strtoupper((string) ($registro->placa_corrigida ?: $registro->placa_registro)));
+                    $veiculoEncontrado = $veiculosPorPlaca->get($chavePlaca);
+
+                    if ($veiculoEncontrado?->condutor) {
+                        $registro->setRelation('condutor', $veiculoEncontrado->condutor);
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data_referencia' => Carbon::today()->format('d/m/Y'),
+            'total' => $registros->count(),
+            'historico' => HistoricoFotoResource::collection($registros),
+        ]);
+    }
 
     public function enviar(Request $request): JsonResponse
     {

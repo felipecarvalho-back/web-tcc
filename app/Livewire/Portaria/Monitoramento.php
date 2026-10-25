@@ -95,7 +95,14 @@ class Monitoramento extends Component
         }
 
         return RegistroAcesso::query()
-            ->select([
+            ->with(['operador:id,nome'])
+            ->filtrarData($this->filterDate)
+            ->filtrarPlaca($this->filterPlate)
+            ->filtrarStatus($this->filterStatus)
+            ->latest('data_hora_entrada')
+            ->latest('id')
+            ->limit(50)
+            ->get([
                 'id',
                 'veiculo_id',
                 'condutor_id',
@@ -109,15 +116,7 @@ class Monitoramento extends Component
                 'status',
                 'justificativa',
             ])
-            ->with(['operador:id,nome'])
-            ->filtrarData($this->filterDate)
-            ->filtrarPlaca($this->filterPlate)
-            ->filtrarStatus($this->filterStatus)
-            ->latest('data_hora_entrada')
-            ->latest('id')
-            ->limit(50)
-            ->get()
-            ->map(fn (RegistroAcesso $registro): array => $registro->toMonitoringArray())
+            ->map(fn ($registro): array => $registro->toMonitoringArray())
             ->all();
     }
 
