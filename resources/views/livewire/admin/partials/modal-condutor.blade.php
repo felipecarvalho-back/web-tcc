@@ -57,7 +57,22 @@
                     @error('code') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
                 </div>
             </div>
-
+            
+<!-- CPF -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-bold text-on-surface">CPF *</label>
+        <input 
+            wire:model="cpf" 
+            type="text" 
+            inputmode="numeric"
+            maxlength="14"
+            placeholder="Ex: 000.000.000-00" 
+            class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface font-mono text-xs rounded-xl focus:outline-none focus:border-primary"
+        />
+        @error('cpf') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
+    </div>
+</div>
             <!-- Departamento & Validade -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
@@ -104,52 +119,58 @@
 
                 <div class="flex flex-col gap-3">
                     @foreach ($vehicles as $index => $v)
-                        <div wire:key="modal-vehicle-{{ $index }}" class="p-3 bg-surface-container-lowest rounded-xl border border-surface-container flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                            <span class="text-xs font-bold text-on-surface-variant font-mono sm:w-6">
-                                #{{ $index + 1 }}
-                            </span>
+                        <div wire:key="modal-vehicle-{{ $index }}" class="p-3 bg-surface-container-lowest rounded-xl border border-surface-container flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-on-surface-variant font-mono">
+                                    #{{ $index + 1 }}
+                                </span>
 
-                            <!-- Placa -->
-                            <div class="flex-1">
-                                <input 
-                                    wire:model="vehicles.{{ $index }}.plate" 
-                                    type="text" 
-                                    placeholder="Placa (Ex: BRA-2E19)" 
-                                    class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-mono font-bold uppercase rounded-lg focus:outline-none focus:border-primary"
-                                />
+                                @if (count($vehicles) > 1)
+                                    <button 
+                                        type="button" 
+                                        wire:click="removeVehicle({{ $index }})"
+                                        class="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/20 transition-colors cursor-pointer"
+                                        title="Remover este veículo"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                @endif
                             </div>
 
-                            <!-- Modelo -->
-                            <div class="flex-1">
-                                <input 
-                                    wire:model="vehicles.{{ $index }}.model" 
-                                    type="text" 
-                                    placeholder="Modelo (Ex: Corolla)" 
-                                    class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-lg focus:outline-none focus:border-primary"
-                                />
-                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <!-- Placa -->
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[11px] font-bold text-on-surface">Placa <span class="text-error">*</span></label>
+                                    <input 
+                                        wire:model="vehicles.{{ $index }}.plate" 
+                                        type="text" 
+                                        placeholder="EX: BRA-2E19" 
+                                        class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-mono font-bold uppercase rounded-lg focus:outline-none focus:border-primary"
+                                    />
+                                </div>
 
-                            <!-- Cor -->
-                            <div class="w-24">
-                                <input 
-                                    wire:model="vehicles.{{ $index }}.color" 
-                                    type="text" 
-                                    placeholder="Cor" 
-                                    class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-lg focus:outline-none focus:border-primary"
-                                />
-                            </div>
+                                <!-- Modelo -->
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[11px] font-bold text-on-surface">Modelo <span class="text-error">*</span></label>
+                                    <input 
+                                        wire:model="vehicles.{{ $index }}.model" 
+                                        type="text" 
+                                        placeholder="EX: Honda Civic" 
+                                        class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-lg focus:outline-none focus:border-primary"
+                                    />
+                                </div>
 
-                            <!-- Remover se houver mais de 1 -->
-                            @if (count($vehicles) > 1)
-                                <button 
-                                    type="button" 
-                                    wire:click="removeVehicle({{ $index }})"
-                                    class="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/20 transition-colors cursor-pointer self-end sm:self-center"
-                                    title="Remover este veículo"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                            @endif
+                                <!-- Cor -->
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[11px] font-bold text-on-surface">Cor <span class="text-error">*</span></label>
+                                    <input 
+                                        wire:model="vehicles.{{ $index }}.color" 
+                                        type="text" 
+                                        placeholder="Cor" 
+                                        class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-lg focus:outline-none focus:border-primary"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
