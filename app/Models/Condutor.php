@@ -94,16 +94,36 @@ class Condutor extends Model
     }
 
     /**
+     * Formata o código de acesso inserindo o hífen após os 3 primeiros caracteres (ex: DOC-88312).
+     */
+    public static function formatarCodigoAcesso(?string $codigo): string
+    {
+        $valor = strtoupper(trim((string) $codigo));
+        if ($valor === '') {
+            return '';
+        }
+
+        $limpo = (string) preg_replace('/[^A-Z0-9]/', '', $valor);
+        if (strlen($limpo) > 3) {
+            return substr($limpo, 0, 3).'-'.substr($limpo, 3, 5);
+        }
+
+        return $limpo;
+    }
+
+    /**
      * Retorna o código de acesso funcional do condutor de acordo com sua categoria.
      */
     public function codigoAcesso(): ?string
     {
-        return match ($this->tipo) {
+        $codigo = match ($this->tipo) {
             'professor' => $this->professor?->codigo_acesso,
             'funcionario' => $this->funcionario?->codigo_acesso,
             'prestador' => $this->prestador?->codigo_acesso,
             default => null,
         };
+
+        return $codigo ? self::formatarCodigoAcesso($codigo) : null;
     }
 
     /**
@@ -115,19 +135,22 @@ class Condutor extends Model
         string $codigo,
         array $tiposPermitidos = ['professor', 'funcionario', 'prestador']
     ): ?self {
-        $codigoLimpo = strtoupper(trim($codigo));
-        if ($codigoLimpo === '') {
+        $codigoFormatado = self::formatarCodigoAcesso($codigo);
+        if ($codigoFormatado === '') {
             return null;
         }
+
+        $semHifen = str_replace('-', '', $codigoFormatado);
+        $candidatos = array_values(array_unique([$codigoFormatado, $semHifen]));
 
         return self::query()
             ->with(['professor', 'funcionario', 'prestador', 'veiculos'])
             ->where('ativo', true)
             ->whereIn('tipo', $tiposPermitidos)
-            ->where(function (Builder $q) use ($codigoLimpo): void {
-                $q->whereHas('professor', fn (Builder $pq) => $pq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]))
-                    ->orWhereHas('funcionario', fn (Builder $fq) => $fq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]))
-                    ->orWhereHas('prestador', fn (Builder $prq) => $prq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]));
+            ->where(function (Builder $q) use ($candidatos): void {
+                $q->whereHas('professor', fn (Builder $pq) => $pq->whereIn('codigo_acesso', $candidatos))
+                    ->orWhereHas('funcionario', fn (Builder $fq) => $fq->whereIn('codigo_acesso', $candidatos))
+                    ->orWhereHas('prestador', fn (Builder $prq) => $prq->whereIn('codigo_acesso', $candidatos));
             })
             ->first();
     }

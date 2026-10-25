@@ -109,6 +109,8 @@
                             wire:keydown.enter.prevent="confirmVerification"
                             id="driver-access-code-input"
                             type="text"
+                            x-mask="***-*****"
+                            maxlength="9"
                             placeholder="Ex: DOC-88312, ADM-101 ou PST-5512"
                             class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
                         />
@@ -145,6 +147,8 @@
                             wire:keydown.enter.prevent="confirmVerification"
                             id="third-party-code-input"
                             type="text"
+                            x-mask="***-*****"
+                            maxlength="9"
                             placeholder="Ex: DOC-88312 ou ADM-10293"
                             class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
                             autofocus

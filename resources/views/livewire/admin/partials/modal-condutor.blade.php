@@ -65,6 +65,8 @@
                     <input
                         wire:model="code"
                         type="text"
+                        x-mask="***-*****"
+                        maxlength="9"
                         placeholder="Ex: DOC-10492"
                         class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface font-mono font-bold text-xs uppercase rounded-xl focus:outline-none focus:border-primary"
                     />

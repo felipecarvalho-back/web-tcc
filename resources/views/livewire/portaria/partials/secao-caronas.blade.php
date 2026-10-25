@@ -25,6 +25,8 @@
                     wire:keydown.enter.prevent="addPassenger"
                     id="passenger-code-input"
                     type="text" 
+                    x-mask="***-*****"
+                    maxlength="9"
                     placeholder="Código do Carona (ex: DOC-74192)" 
                     class="w-full h-10 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-xs uppercase rounded-lg focus:outline-none tracking-wider"
                 />

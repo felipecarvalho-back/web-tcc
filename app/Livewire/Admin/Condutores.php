@@ -148,7 +148,7 @@ class Condutores extends Component
             default => null,
         };
 
-        $this->code = $especializacao?->codigo_acesso ?? '';
+        $this->code = Condutor::formatarCodigoAcesso($especializacao?->codigo_acesso ?? '');
 
         $this->department = match ($condutor->tipo) {
             'professor' => $condutor->professor?->departamento ?? '',
@@ -185,7 +185,7 @@ class Condutores extends Component
     public function save(): void
     {
         $this->cpf = trim($this->cpf);
-        $this->code = strtoupper(trim($this->code));
+        $this->code = Condutor::formatarCodigoAcesso($this->code);
 
         foreach ($this->vehicles as $index => $vehicle) {
             $placaBruta = trim((string) ($vehicle['plate'] ?? ''));
@@ -523,7 +523,7 @@ class Condutores extends Component
                 'name' => $condutor->nome,
                 'cpf' => $condutor->cpf,
                 'category' => $condutor->tipo,
-                'code' => $especializacao?->codigo_acesso ?? '--',
+                'code' => $condutor->codigoAcesso() ?? '--',
                 'department' => $departamento,
                 'vehicles' => $condutor->veiculos->map(function ($vehicle): array {
                     /** @var Veiculo $vehicle */

@@ -49,6 +49,8 @@
                     wire:keydown.enter.prevent="confirmDriver"
                     id="confirm-driver-code-input"
                     type="text"
+                    x-mask="***-*****"
+                    maxlength="9"
                     placeholder="Ex: DOC-88312, ADM-10293 ou PST-5512"
                     class="w-full h-11 pl-11 pr-3 bg-surface-container-lowest border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
                     autofocus
