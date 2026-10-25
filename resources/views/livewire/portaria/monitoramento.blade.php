@@ -228,21 +228,19 @@
                             <!-- AÇÕES OPERACIONAIS CONFORME STATUS DA LEITURA -->
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
-                                    @if ($record['status'] === 'autorizado')
-                                        @if (! ($record['is_visitor'] ?? false))
-                                            <!-- Carro Identificado (Professor/Funcionário/Prestador): Confirmar Condutor via código de acesso -->
-                                            <button
-                                                type="button"
-                                                wire:click="openDriverConfirmationModal({{ $record['id'] }})"
-                                                class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-                                                title="Confirmar se o motorista é o condutor cadastrado via código de acesso"
-                                            >
-                                                <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
-                                                <span>Confirmar Condutor</span>
-                                            </button>
-                                        @endif
-
-                                        <!-- Marcar Saída -->
+                                    @if ($record['status'] === 'pendente')
+                                        <!-- Caso 1: Placa reconhecida no banco -> Validar apenas o código de acesso para liberar -->
+                                        <button
+                                            type="button"
+                                            wire:click="openDriverConfirmationModal({{ $record['id'] }})"
+                                            class="h-8 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                                            title="Validar código de acesso do condutor e liberar a cancela"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+                                            <span>Confirmar Condutor</span>
+                                        </button>
+                                    @elseif ($record['status'] === 'autorizado')
+                                        <!-- Veículo já validado e liberado no pátio: Marcar Saída -->
                                         <button
                                             type="button"
                                             wire:click="markExit({{ $record['id'] }})"
@@ -257,12 +255,12 @@
                                             Saída Concluída
                                         </span>
                                     @else
-                                        <!-- Placa NÃO Identificada / Com Erro / Não Cadastrada: Botão Único de Dupla Verificação -->
+                                        <!-- Casos 2 e 3: Placa NÃO identificada no banco ou Carro de Terceiro -->
                                         <button
                                             type="button"
                                             wire:click="openVerificationModal({{ $record['id'] }})"
                                             class="h-8 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-                                            title="Dupla verificação: corrigir leitura da placa ou validar código do motorista"
+                                            title="Corrigir placa + código de acesso ou liberar carro de terceiro"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">fact_check</span>
                                             <span>Verificar e Liberar</span>

@@ -39,6 +39,9 @@
                 <span>Adicionar</span>
             </button>
         </div>
+        @error('newPassengerCode')
+            <span class="text-error text-[11px] font-semibold">{{ $message }}</span>
+        @enderror
     @else
         <div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] text-center font-medium">
             Capacidade máxima de caronas atingida para este veículo (5 pessoas no total).

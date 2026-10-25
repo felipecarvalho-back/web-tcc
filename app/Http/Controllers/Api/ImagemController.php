@@ -134,10 +134,15 @@ class ImagemController extends Controller
             $armazenamento = 'local';
         }
 
-        // 4. Registra a passagem na tabela registros_acesso usando os Enums tipados
+        // 4. Verifica se a placa lida pelo OCR pertence a um veículo/condutor ativo no banco
+        $veiculoCadastrado = $placaDetectada
+            ? Veiculo::buscarAtivoPorPlaca($placaFormatada)
+            : null;
+
+        // 5. Registra a passagem na tabela registros_acesso usando os Enums tipados
         $registro = RegistroAcesso::create([
-            'veiculo_id' => null,
-            'condutor_id' => null,
+            'veiculo_id' => $veiculoCadastrado?->id,
+            'condutor_id' => $veiculoCadastrado?->condutor_id,
             'tipo_ocupante' => TipoOcupante::Condutor,
             'placa_registro' => $placaFormatada,
             'cancela' => $request->input('cancela', 'Cancela 01 (Principal)'),
@@ -145,10 +150,12 @@ class ImagemController extends Controller
             'operador_id' => $request->user()?->id,
             'foto_entrada_path' => $urlFinal,
             'placa_corrigida' => null,
-            'status' => $placaDetectada ? StatusAcesso::Pendente : StatusAcesso::NaoCadastrado,
-            'justificativa' => $placaDetectada
-                ? 'Placa identificada via OCR'
-                : 'Placa não identificada automaticamente pelo OCR',
+            'status' => $veiculoCadastrado ? StatusAcesso::Pendente : StatusAcesso::NaoCadastrado,
+            'justificativa' => $veiculoCadastrado
+                ? 'Placa identificada no banco (aguardando código de validação)'
+                : ($placaDetectada
+                    ? 'Placa lida pelo OCR não encontrada no banco'
+                    : 'Placa não identificada automaticamente pelo OCR'),
         ]);
 
         return response()->json([

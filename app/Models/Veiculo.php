@@ -51,4 +51,30 @@ class Veiculo extends Model
     {
         return $this->hasMany(RegistroAcesso::class, 'veiculo_id');
     }
+
+    /**
+     * Busca um veículo ativo pela placa (com ou sem hífen) cujo condutor esteja ativo.
+     *
+     * @param  array<int, string>  $tiposCondutor
+     */
+    public static function buscarAtivoPorPlaca(
+        ?string $placa,
+        array $tiposCondutor = ['professor', 'funcionario', 'prestador']
+    ): ?self {
+        $placaFormatada = RegistroAcesso::formatarPlaca($placa);
+        if ($placaFormatada === '' || $placaFormatada === RegistroAcesso::PLACA_NAO_IDENTIFICADA) {
+            return null;
+        }
+
+        $semHifen = str_replace('-', '', $placaFormatada);
+
+        return self::query()
+            ->with(['condutor.professor', 'condutor.funcionario', 'condutor.prestador'])
+            ->where('ativo', true)
+            ->whereIn('placa', [$placaFormatada, $semHifen])
+            ->whereHas('condutor', function ($q) use ($tiposCondutor): void {
+                $q->where('ativo', true)->whereIn('tipo', $tiposCondutor);
+            })
+            ->first();
+    }
 }

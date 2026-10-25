@@ -1,7 +1,7 @@
 @if ($showVerificationModal && $selectedRecord)
-    <x-modal 
-        title="Dupla Verificação de Acesso - Veículo Não Identificado"
-        subtitle="Correção de Leitura do OCR ou Identificação por Código de Acesso"
+    <x-modal
+        title="Verificação de Acesso - Placa Não Identificada no Banco"
+        subtitle="Corrija a placa com código de acesso ou valide carro de terceiro"
         icon="fact_check"
         onClose="closeVerificationModal"
         maxWidth="2xl"
@@ -29,100 +29,165 @@
             </div>
         </div>
 
-        <!-- Orientações da Dupla Verificação -->
-        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-[20px] text-amber-700 shrink-0 mt-0.5">info</span>
-            <div class="flex flex-col gap-0.5">
-                <span class="font-bold">Placa não identificada ou não encontrada no banco de dados</span>
-                <p class="text-[11.5px] leading-relaxed text-amber-900">
-                    O porteiro pode <strong>corrigir a placa</strong> (caso o OCR tenha lido incorretamente) ou <strong>solicitar o código de acesso</strong> do motorista (caso seja um docente ou funcionário em carro de terceiro/amigo).
-                </p>
-            </div>
-        </div>
-
-        <!-- Opção 1: Correção da Placa lida pelo OCR -->
-        <div class="flex flex-col gap-1.5 p-3.5 rounded-xl border border-surface-container bg-surface-container-lowest">
-            <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-on-surface flex items-center gap-1.5" for="corrected-plate-input">
-                    <span class="w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">1</span>
-                    <span>Corrigir Placa do Veículo (Se houve falha no OCR)</span>
-                </label>
-                <span class="text-[11px] text-on-surface-variant font-mono">Original: {{ $selectedRecord['plate'] }}</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center mt-1">
-                <input 
-                    wire:model="correctedPlate"
-                    id="corrected-plate-input"
-                    type="text" 
-                    x-mask="***-****"
-                    maxlength="8"
-                    placeholder="Ex: ABC-1234" 
-                    class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider text-center"
-                />
-                <p class="text-[11px] text-on-surface-variant">
-                    Corrija caracteres ilegíveis devido a reflexo solar, sujeira ou ângulo da câmera.
-                </p>
-            </div>
-        </div>
-
-        <!-- Opção 2: Código de Acesso do Motorista -->
-        <div class="flex flex-col gap-1.5 p-3.5 rounded-xl border border-surface-container bg-surface-container-lowest">
-            <label class="text-xs font-bold text-on-surface flex items-center gap-1.5" for="driver-access-code-input">
-                <span class="w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">2</span>
-                <span>Código de Acesso do Motorista (Carro de Terceiro / Não Cadastrado)</span>
-            </label>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center mt-1">
-                <div class="relative flex items-center">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
-                        <span class="material-symbols-outlined text-[18px] leading-none">badge</span>
-                    </div>
-                    <input 
-                        wire:model="driverAccessCode"
-                        id="driver-access-code-input"
-                        type="text" 
-                        placeholder="Ex: DOC-94281 ou ADM-10293" 
-                        class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
-                    />
-                </div>
-                <p class="text-[11px] text-on-surface-variant">
-                    Informe a matrícula funcional do professor/funcionário caso o veículo não pertença a ele.
-                </p>
-            </div>
-        </div>
-
-        <!-- Justificativa da Liberação -->
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold text-on-surface" for="verification-justification">
-                Motivo / Justificativa da Liberação
-            </label>
-            <select 
-                wire:model="justification"
-                id="verification-justification"
-                class="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-highest text-on-surface text-xs font-medium rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+        <!-- Seletor do Tipo de Ocorrência na Guarita -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+                type="button"
+                wire:click="$set('verificationMode', 'corrigir_placa')"
+                class="p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 {{ $verificationMode === 'corrigir_placa' ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-surface-container bg-surface-container-lowest hover:bg-surface-container-low' }}"
             >
-                <option value="Correção manual de leitura OCR">Correção manual de leitura OCR</option>
-                <option value="Veículo de terceiro / Carro emprestado de amigo ou parente">Veículo de terceiro / Carro emprestado de amigo ou parente</option>
-                <option value="Veículo novo ainda não cadastrado no sistema">Veículo novo ainda não cadastrado no sistema</option>
-                <option value="Veículo reserva / Carro alugado / Oficina mecânica">Veículo reserva / Carro alugado / Oficina mecânica</option>
-                <option value="Outros motivos operacionais da guarita">Outros motivos operacionais da guarita</option>
-            </select>
+                <span class="material-symbols-outlined text-[22px] {{ $verificationMode === 'corrigir_placa' ? 'text-primary' : 'text-on-surface-variant' }}">edit_square</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-xs font-bold text-on-surface">1. Corrigir Placa + Código</span>
+                    <span class="text-[11px] text-on-surface-variant leading-snug">
+                        Falha no OCR (Professor, Funcionário ou Prestador com veículo cadastrado).
+                    </span>
+                </div>
+            </button>
+
+            <button
+                type="button"
+                wire:click="$set('verificationMode', 'carro_terceiro')"
+                class="p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 {{ $verificationMode === 'carro_terceiro' ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-surface-container bg-surface-container-lowest hover:bg-surface-container-low' }}"
+            >
+                <span class="material-symbols-outlined text-[22px] {{ $verificationMode === 'carro_terceiro' ? 'text-primary' : 'text-on-surface-variant' }}">badge</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-xs font-bold text-on-surface">2. Carro de Terceiro</span>
+                    <span class="text-[11px] text-on-surface-variant leading-snug">
+                        Apenas código de acesso (Exclusivo para Professor e Funcionário).
+                    </span>
+                </div>
+            </button>
         </div>
+
+        @if ($verificationMode === 'corrigir_placa')
+            <!-- MODO 1: CORRIGIR PLACA + CÓDIGO DE ACESSO (TODOS OS VÍNCULOS) -->
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5">
+                <span class="material-symbols-outlined text-[20px] text-amber-700 shrink-0 mt-0.5">info</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold">Correção de Placa + Código de Acesso (Todos os Casos)</span>
+                    <p class="text-[11.5px] leading-relaxed text-amber-900">
+                        Informe a <strong>placa correta do veículo</strong> e o <strong>código de acesso</strong> do condutor (Professor, Funcionário ou Prestador de Serviço) para validar no banco e liberar a cancela.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border border-surface-container bg-surface-container-lowest">
+                <!-- Placa Corrigida -->
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-on-surface" for="corrected-plate-input">
+                            Placa Corrigida do Veículo *
+                        </label>
+                        <span class="text-[10px] text-on-surface-variant font-mono">Lida: {{ $selectedRecord['plate'] }}</span>
+                    </div>
+                    <input
+                        wire:model="correctedPlate"
+                        id="corrected-plate-input"
+                        type="text"
+                        x-mask="***-****"
+                        maxlength="8"
+                        placeholder="Ex: ABC-1234"
+                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider text-center"
+                    />
+                    @error('correctedPlate')
+                        <span class="text-error text-[11px] font-semibold">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <!-- Código de Acesso -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-on-surface" for="driver-access-code-input">
+                        Código de Acesso do Condutor *
+                    </label>
+                    <div class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[18px] leading-none">pin</span>
+                        </div>
+                        <input
+                            wire:model="driverAccessCode"
+                            wire:keydown.enter.prevent="confirmVerification"
+                            id="driver-access-code-input"
+                            type="text"
+                            placeholder="Ex: DOC-88312, ADM-101 ou PST-5512"
+                            class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
+                        />
+                    </div>
+                    @error('driverAccessCode')
+                        <span class="text-error text-[11px] font-semibold">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+        @else
+            <!-- MODO 2: CARRO DE TERCEIROS (APENAS PROFESSOR E FUNCIONÁRIO) -->
+            <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-2.5">
+                <span class="material-symbols-outlined text-[20px] text-blue-700 shrink-0 mt-0.5">verified_user</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold">Acesso em Veículo de Terceiros (Exclusivo Professor e Funcionário)</span>
+                    <p class="text-[11.5px] leading-relaxed text-blue-900">
+                        Quando um <strong>Professor</strong> ou <strong>Funcionário</strong> estiver dirigindo um carro emprestado, alugado ou de familiar, basta informar o <strong>código de acesso funcional</strong> para liberar.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 {{ $selectedRecord['plate'] === 'SEM-PLACA' ? 'sm:grid-cols-2' : '' }} gap-4 p-4 rounded-xl border border-surface-container bg-surface-container-lowest">
+                <!-- Código de Acesso (Obrigatório) -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-on-surface" for="third-party-code-input">
+                        Código de Acesso (Professor ou Funcionário) *
+                    </label>
+                    <div class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[18px] leading-none">badge</span>
+                        </div>
+                        <input
+                            wire:model="driverAccessCode"
+                            wire:keydown.enter.prevent="confirmVerification"
+                            id="third-party-code-input"
+                            type="text"
+                            placeholder="Ex: DOC-88312 ou ADM-10293"
+                            class="w-full h-11 pl-11 pr-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider"
+                            autofocus
+                        />
+                    </div>
+                    @error('driverAccessCode')
+                        <span class="text-error text-[11px] font-semibold">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                @if ($selectedRecord['plate'] === 'SEM-PLACA')
+                    <!-- Caso o OCR não tenha lido a placa do carro de terceiro -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-on-surface" for="third-party-plate-input">
+                            Placa do Veículo (Opcional)
+                        </label>
+                        <input
+                            wire:model="correctedPlate"
+                            id="third-party-plate-input"
+                            type="text"
+                            x-mask="***-****"
+                            maxlength="8"
+                            placeholder="Ex: ABC-1234"
+                            class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest focus:border-primary text-on-surface font-mono font-bold text-sm uppercase rounded-xl focus:outline-none tracking-wider text-center"
+                        />
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <!-- Seção de Caronas / Múltiplos Ocupantes (Opcional - Até 4 caronas) -->
         @include('livewire.portaria.partials.secao-caronas')
 
         <x-slot:footer>
-            <button 
-                type="button" 
+            <button
+                type="button"
                 wire:click="closeVerificationModal"
                 class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors cursor-pointer"
             >
                 Cancelar
             </button>
-            <button 
-                type="button" 
+            <button
+                type="button"
                 wire:click="confirmVerification"
                 wire:loading.attr="disabled"
                 class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"

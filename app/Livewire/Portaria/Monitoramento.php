@@ -3,10 +3,15 @@
 namespace App\Livewire\Portaria;
 
 use App\Enums\StatusAcesso;
+use App\Enums\TipoOcupante;
 use App\Livewire\Concerns\HasToast;
+use App\Models\Condutor;
 use App\Models\RegistroAcesso;
+use App\Models\Veiculo;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -60,14 +65,19 @@ class Monitoramento extends Component
      */
     public ?array $selectedRecord = null;
 
-    // Campos da Dupla Verificação (Placa não identificada / Não cadastrada)
+    /**
+     * Modo do modal de verificação: 'corrigir_placa' (Todos) ou 'carro_terceiro' (Professor/Funcionário).
+     */
+    public string $verificationMode = 'corrigir_placa';
+
+    // Campos da Dupla Verificação (Placa não identificada / Carro de Terceiro)
     public string $correctedPlate = '';
 
     public string $driverAccessCode = '';
 
     public string $justification = 'Correção manual de leitura OCR';
 
-    // Campos da Confirmação de Condutor (Veículo identificado)
+    // Campos da Confirmação de Condutor (Veículo identificado no banco)
     public string $confirmDriverCode = '';
 
     /**
@@ -86,12 +96,21 @@ class Monitoramento extends Component
 
     public int $manualCorrections = 0;
 
+    public function updatedVerificationMode(string $mode): void
+    {
+        $this->resetValidation();
+        $this->justification = $mode === 'carro_terceiro'
+            ? 'Veículo de terceiro / Carro emprestado de amigo ou parente'
+            : 'Correção manual de leitura OCR';
+    }
+
     /**
      * Atualiza os 3 indicadores do topo em uma única query SQL otimizada.
      */
     private function loadMetrics(): void
     {
         $metricas = RegistroAcesso::query()
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
             ->filtrarData('hoje')
             ->selectRaw('
                 COUNT(*) as total,
@@ -126,7 +145,14 @@ class Monitoramento extends Component
                 'status',
                 'justificativa',
             ])
-            ->with(['operador:id,nome', 'condutor:id,nome,tipo'])
+            ->with([
+                'operador:id,nome',
+                'condutor:id,nome,tipo',
+                'condutor.professor:condutor_id,codigo_acesso,departamento',
+                'condutor.funcionario:condutor_id,codigo_acesso,setor',
+                'condutor.prestador:condutor_id,codigo_acesso,empresa',
+            ])
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
             ->filtrarCategoria($this->filterCategory)
             ->filtrarData($this->filterDate)
             ->filtrarPlaca($this->filterPlate)
@@ -144,10 +170,12 @@ class Monitoramento extends Component
     }
 
     /**
-     * Adiciona um código de carona/passageiro à lista de ocupantes (limite de até 4 caronas).
+     * Adiciona um código de carona/passageiro à lista de ocupantes (exclusivo para Docentes e Funcionários, até 4 caronas).
      */
     public function addPassenger(): void
     {
+        $this->resetErrorBag('newPassengerCode');
+
         $code = strtoupper(trim($this->newPassengerCode));
         if ($code === '') {
             return;
@@ -159,8 +187,22 @@ class Monitoramento extends Component
             return;
         }
 
+        $codigoMotorista = strtoupper(trim($this->confirmDriverCode ?: $this->driverAccessCode));
+        if ($codigoMotorista !== '' && $code === $codigoMotorista) {
+            $this->addError('newPassengerCode', 'O código informado já é o do motorista principal.');
+
+            return;
+        }
+
         if (in_array($code, $this->passengers, true)) {
-            $this->triggerToast('Este código de carona já foi adicionado.', 'warning');
+            $this->addError('newPassengerCode', 'Este código de carona já foi adicionado.');
+
+            return;
+        }
+
+        $passageiro = Condutor::buscarAtivoPorCodigo($code, ['professor', 'funcionario']);
+        if (! $passageiro) {
+            $this->addError('newPassengerCode', 'Código de carona inválido. Informe o código de um Professor ou Funcionário ativo.');
 
             return;
         }
@@ -181,7 +223,7 @@ class Monitoramento extends Component
     }
 
     /**
-     * Abre o modal de dupla verificação para veículos com placa não identificada ou não cadastrada.
+     * Abre o modal de dupla verificação para veículos com placa não identificada ou carro de terceiros.
      */
     public function openVerificationModal(int $id): void
     {
@@ -190,8 +232,11 @@ class Monitoramento extends Component
             return;
         }
 
+        $this->resetValidation();
+
         $record = $registro->toMonitoringArray();
         $this->selectedRecord = $record;
+        $this->verificationMode = 'corrigir_placa';
         $this->correctedPlate = $record['plate'] === RegistroAcesso::PLACA_NAO_IDENTIFICADA ? '' : $record['plate'];
         $this->driverAccessCode = '';
         $this->justification = 'Correção manual de leitura OCR';
@@ -205,8 +250,10 @@ class Monitoramento extends Component
      */
     public function closeVerificationModal(): void
     {
+        $this->resetValidation();
         $this->showVerificationModal = false;
         $this->selectedRecord = null;
+        $this->verificationMode = 'corrigir_placa';
         $this->correctedPlate = '';
         $this->driverAccessCode = '';
         $this->passengers = [];
@@ -214,7 +261,7 @@ class Monitoramento extends Component
     }
 
     /**
-     * Processa a validação da dupla verificação e libera a cancela.
+     * Processa a validação da dupla verificação (Caso 2: Corrigir Placa + Código / Caso 3: Carro de Terceiros) e libera a cancela.
      */
     public function confirmVerification(): void
     {
@@ -222,22 +269,116 @@ class Monitoramento extends Component
             return;
         }
 
+        $this->resetValidation();
+
         $targetId = $this->selectedRecord['id'];
         $registro = RegistroAcesso::find($targetId);
+        if (! $registro) {
+            return;
+        }
 
-        if ($registro) {
-            $novaPlaca = trim($this->correctedPlate) !== ''
-                ? RegistroAcesso::formatarPlaca($this->correctedPlate)
-                : '';
-            $placaOriginal = $registro->placa_registro;
+        $codigoFormatado = strtoupper(trim($this->driverAccessCode));
+        $placaFormatada = trim($this->correctedPlate) !== ''
+            ? RegistroAcesso::formatarPlaca($this->correctedPlate)
+            : '';
 
-            if ($novaPlaca !== '' && $novaPlaca !== $placaOriginal) {
-                $registro->placa_corrigida = substr($novaPlaca, 0, 10);
+        if ($this->verificationMode === 'carro_terceiro') {
+            if ($codigoFormatado === '') {
+                $this->addError('driverAccessCode', 'Informe o código de acesso do Professor ou Funcionário.');
+
+                return;
             }
 
-            $registro->status = StatusAcesso::LiberadoManual;
-            $registro->justificativa = $this->justification;
-            $registro->save();
+            $prestador = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['prestador']);
+            if ($prestador) {
+                $this->addError(
+                    'driverAccessCode',
+                    'Acesso com carro de terceiros é permitido exclusivamente para Professores e Funcionários.'
+                );
+
+                return;
+            }
+
+            $condutor = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['professor', 'funcionario']);
+            if (! $condutor) {
+                $this->addError(
+                    'driverAccessCode',
+                    'Código de acesso inválido ou inativo. Informe um código de Professor ou Funcionário.'
+                );
+
+                return;
+            }
+
+            DB::transaction(function () use ($registro, $condutor, $placaFormatada, $codigoFormatado): void {
+                if ($placaFormatada !== '' && $placaFormatada !== $registro->placa_registro) {
+                    $registro->placa_corrigida = substr($placaFormatada, 0, 10);
+                }
+
+                $registro->condutor_id = $condutor->id;
+                $registro->veiculo_id = null;
+                $registro->operador_id = Auth::id() ?: $registro->operador_id;
+                $registro->status = StatusAcesso::LiberadoManual;
+                $registro->justificativa = "Carro de terceiro liberado por código ({$codigoFormatado})";
+                $registro->save();
+
+                $this->registrarCaronas($registro);
+            });
+        } else {
+            // Modo 'corrigir_placa': Exige Placa Corrigida + Código de Acesso (Professor, Funcionário ou Prestador)
+            if ($placaFormatada === '' || strlen(str_replace('-', '', $placaFormatada)) < 7) {
+                $this->addError('correctedPlate', 'Informe a placa corrigida completa do veículo (7 caracteres).');
+            }
+
+            if ($codigoFormatado === '') {
+                $this->addError('driverAccessCode', 'Informe o código de acesso do condutor para validar a placa.');
+            }
+
+            if ($this->getErrorBag()->isNotEmpty()) {
+                return;
+            }
+
+            $condutor = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['professor', 'funcionario', 'prestador']);
+            if (! $condutor) {
+                $this->addError('driverAccessCode', 'Código de acesso inválido ou condutor inativo no sistema.');
+
+                return;
+            }
+
+            $veiculo = Veiculo::buscarAtivoPorPlaca($placaFormatada);
+            if (! $veiculo) {
+                $this->addError(
+                    'correctedPlate',
+                    'Esta placa não está cadastrada no banco. Caso seja veículo emprestado, selecione a opção "Carro de Terceiro".'
+                );
+
+                return;
+            }
+
+            if ($veiculo->condutor_id !== $condutor->id) {
+                $this->addError(
+                    'driverAccessCode',
+                    'O código de acesso informado não pertence ao proprietário cadastrado desta placa.'
+                );
+
+                return;
+            }
+
+            DB::transaction(function () use ($registro, $condutor, $veiculo, $placaFormatada, $codigoFormatado): void {
+                if ($placaFormatada !== $registro->placa_registro) {
+                    $registro->placa_corrigida = substr($placaFormatada, 0, 10);
+                }
+
+                $registro->veiculo_id = $veiculo->id;
+                $registro->condutor_id = $condutor->id;
+                $registro->operador_id = Auth::id() ?: $registro->operador_id;
+                $registro->status = StatusAcesso::LiberadoManual;
+                $registro->justificativa = "Placa corrigida ({$placaFormatada}) e código validado ({$codigoFormatado})";
+                $registro->save();
+
+                if (in_array($condutor->tipo, ['professor', 'funcionario'], true)) {
+                    $this->registrarCaronas($registro);
+                }
+            });
         }
 
         $passengerCount = count($this->passengers);
@@ -249,13 +390,33 @@ class Monitoramento extends Component
     }
 
     /**
-     * Abre o modal de confirmação de condutor para veículos que já foram identificados pelo sistema.
+     * Abre o modal de confirmação de condutor para veículos cuja placa já foi identificada no banco.
      */
     public function openDriverConfirmationModal(int $id): void
     {
-        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo'])->find($id);
+        $registro = RegistroAcesso::with([
+            'operador:id,nome',
+            'condutor:id,nome,tipo',
+            'condutor.professor:condutor_id,codigo_acesso,departamento',
+            'condutor.funcionario:condutor_id,codigo_acesso,setor',
+            'condutor.prestador:condutor_id,codigo_acesso,empresa',
+        ])->find($id);
+
         if (! $registro) {
             return;
+        }
+
+        $this->resetValidation();
+
+        // Caso o registro tenha placa mas ainda não tenha vínculo salvo de veiculo_id/condutor_id, vincula automaticamente
+        if (! $registro->condutor_id && $registro->temPlacaIdentificada()) {
+            $veiculo = Veiculo::buscarAtivoPorPlaca($registro->placaExibida());
+            if ($veiculo) {
+                $registro->veiculo_id = $veiculo->id;
+                $registro->condutor_id = $veiculo->condutor_id;
+                $registro->save();
+                $registro->setRelation('condutor', $veiculo->condutor);
+            }
         }
 
         $this->selectedRecord = $registro->toMonitoringArray();
@@ -270,6 +431,7 @@ class Monitoramento extends Component
      */
     public function closeDriverConfirmationModal(): void
     {
+        $this->resetValidation();
         $this->showDriverConfirmationModal = false;
         $this->selectedRecord = null;
         $this->confirmDriverCode = '';
@@ -278,7 +440,7 @@ class Monitoramento extends Component
     }
 
     /**
-     * Confirma se o motorista na guarita é de fato o condutor registrado no veículo.
+     * Caso 1: Placa identificada no banco -> valida apenas o código de acesso (Professor, Funcionário ou Prestador) e libera o carro.
      */
     public function confirmDriver(): void
     {
@@ -286,8 +448,54 @@ class Monitoramento extends Component
             return;
         }
 
+        $this->resetValidation();
+
+        $codigoFormatado = strtoupper(trim($this->confirmDriverCode));
+        if ($codigoFormatado === '') {
+            $this->addError('confirmDriverCode', 'Informe o código de acesso do condutor para liberar a cancela.');
+
+            return;
+        }
+
         $targetId = $this->selectedRecord['id'];
-        RegistroAcesso::whereKey($targetId)->update(['status' => StatusAcesso::Autorizado]);
+        $registro = RegistroAcesso::with(['condutor', 'veiculo'])->find($targetId);
+        if (! $registro) {
+            return;
+        }
+
+        $condutor = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['professor', 'funcionario', 'prestador']);
+        if (! $condutor) {
+            $this->addError('confirmDriverCode', 'Código de acesso inválido ou condutor inativo no sistema.');
+
+            return;
+        }
+
+        $veiculo = $registro->veiculo ?: Veiculo::buscarAtivoPorPlaca($registro->placaExibida());
+
+        if ($registro->condutor_id && $condutor->id !== $registro->condutor_id) {
+            $this->addError('confirmDriverCode', 'O código informado não corresponde ao condutor titular deste veículo.');
+
+            return;
+        }
+
+        if ($veiculo && $veiculo->condutor_id !== $condutor->id) {
+            $this->addError('confirmDriverCode', 'O código informado não pertence ao proprietário cadastrado desta placa.');
+
+            return;
+        }
+
+        DB::transaction(function () use ($registro, $condutor, $veiculo, $codigoFormatado): void {
+            $registro->condutor_id = $condutor->id;
+            $registro->veiculo_id = $veiculo?->id ?? $registro->veiculo_id;
+            $registro->operador_id = Auth::id() ?: $registro->operador_id;
+            $registro->status = StatusAcesso::Autorizado;
+            $registro->justificativa = "Condutor confirmado por código ({$codigoFormatado})";
+            $registro->save();
+
+            if (in_array($condutor->tipo, ['professor', 'funcionario'], true)) {
+                $this->registrarCaronas($registro);
+            }
+        });
 
         $passengerCount = count($this->passengers);
         $passengerNote = $passengerCount > 0 ? " (+{$passengerCount} carona(s) registrada(s))" : '';
@@ -298,16 +506,57 @@ class Monitoramento extends Component
     }
 
     /**
-     * Registra a saída de um veículo no sistema.
+     * Registra os passageiros/caronas vinculados à passagem principal do veículo.
+     */
+    private function registrarCaronas(RegistroAcesso $passagemPrincipal): void
+    {
+        $passagemPrincipal->loadMissing('condutor');
+
+        foreach ($this->passengers as $codigoCarona) {
+            $passageiro = Condutor::buscarAtivoPorCodigo($codigoCarona, ['professor', 'funcionario']);
+            if (! $passageiro) {
+                continue;
+            }
+
+            RegistroAcesso::create([
+                'veiculo_id' => $passagemPrincipal->veiculo_id,
+                'condutor_id' => $passageiro->id,
+                'tipo_ocupante' => TipoOcupante::Passageiro,
+                'passagem_origem_id' => $passagemPrincipal->id,
+                'placa_registro' => $passagemPrincipal->placa_registro,
+                'placa_corrigida' => $passagemPrincipal->placa_corrigida,
+                'cancela' => $passagemPrincipal->cancela,
+                'data_hora_entrada' => $passagemPrincipal->data_hora_entrada ?? Carbon::now(),
+                'operador_id' => Auth::id() ?: $passagemPrincipal->operador_id,
+                'foto_entrada_path' => $passagemPrincipal->foto_entrada_path,
+                'status' => $passagemPrincipal->status,
+                'justificativa' => "Carona com {$passagemPrincipal->nomeCondutorExibicao()} ({$codigoCarona})",
+            ]);
+        }
+    }
+
+    /**
+     * Registra a saída de um veículo no sistema (e das eventuais caronas vinculadas).
      */
     public function markExit(int $id): void
     {
         $registro = RegistroAcesso::find($id);
 
         if ($registro) {
-            $registro->data_hora_saida = Carbon::now();
-            $registro->status = StatusAcesso::Finalizado;
-            $registro->save();
+            $agora = Carbon::now();
+
+            DB::transaction(function () use ($registro, $agora): void {
+                $registro->data_hora_saida = $agora;
+                $registro->status = StatusAcesso::Finalizado;
+                $registro->save();
+
+                $registro->caronas()
+                    ->whereNull('data_hora_saida')
+                    ->update([
+                        'data_hora_saida' => $agora,
+                        'status' => StatusAcesso::Finalizado,
+                    ]);
+            });
 
             $placa = $registro->placaExibida();
             unset($this->filteredRecords);

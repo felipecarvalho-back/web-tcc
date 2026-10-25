@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -90,5 +91,44 @@ class Condutor extends Model
     public function registrosAcesso(): HasMany
     {
         return $this->hasMany(RegistroAcesso::class, 'condutor_id');
+    }
+
+    /**
+     * Retorna o código de acesso funcional do condutor de acordo com sua categoria.
+     */
+    public function codigoAcesso(): ?string
+    {
+        return match ($this->tipo) {
+            'professor' => $this->professor?->codigo_acesso,
+            'funcionario' => $this->funcionario?->codigo_acesso,
+            'prestador' => $this->prestador?->codigo_acesso,
+            default => null,
+        };
+    }
+
+    /**
+     * Busca um condutor ativo pelo código de acesso nas categorias permitidas.
+     *
+     * @param  array<int, string>  $tiposPermitidos
+     */
+    public static function buscarAtivoPorCodigo(
+        string $codigo,
+        array $tiposPermitidos = ['professor', 'funcionario', 'prestador']
+    ): ?self {
+        $codigoLimpo = strtoupper(trim($codigo));
+        if ($codigoLimpo === '') {
+            return null;
+        }
+
+        return self::query()
+            ->with(['professor', 'funcionario', 'prestador', 'veiculos'])
+            ->where('ativo', true)
+            ->whereIn('tipo', $tiposPermitidos)
+            ->where(function (Builder $q) use ($codigoLimpo): void {
+                $q->whereHas('professor', fn (Builder $pq) => $pq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]))
+                    ->orWhereHas('funcionario', fn (Builder $fq) => $fq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]))
+                    ->orWhereHas('prestador', fn (Builder $prq) => $prq->whereRaw('UPPER(codigo_acesso) = ?', [$codigoLimpo]));
+            })
+            ->first();
     }
 }
