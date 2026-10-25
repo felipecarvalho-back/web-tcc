@@ -40,9 +40,9 @@
                             wire:model="plate"
                             id="plate"
                             type="text"
-                            x-mask="aaa-9*99"
+                            x-mask="***-****"
                             maxlength="8"
-                            placeholder="AAA-0A00"
+                            placeholder="Ex: ABC-1234"
                             class="w-full h-11 pl-10 pr-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-sm rounded-xl focus:border-primary focus:outline-none transition-colors font-mono uppercase tracking-wider"
                         />
                     </div>

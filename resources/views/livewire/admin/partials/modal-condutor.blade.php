@@ -114,9 +114,9 @@
                                 <input 
                                     wire:model="vehicles.{{ $index }}.plate" 
                                     type="text" 
-                                    x-mask="aaa-9*99"
+                                    x-mask="***-****"
                                     maxlength="8"
-                                    placeholder="Placa (AAA-0A00)" 
+                                    placeholder="Placa (Ex: ABC-1234)" 
                                     class="w-full h-9 px-2.5 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-mono font-bold uppercase rounded-lg focus:outline-none focus:border-primary"
                                 />
                             </div>
