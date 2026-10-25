@@ -73,28 +73,72 @@
             </div>
 
             <!-- Departamento / Empresa & Validade -->
+            @php
+                $opcoesDepartamento = $category === 'prestador'
+                    ? [
+                        'Manutenção Predial / Infraestrutura' => 'Manutenção Predial / Infraestrutura',
+                        'Infraestrutura Elétrica & Redes' => 'Infraestrutura Elétrica & Redes',
+                        'Limpeza e Conservação' => 'Limpeza e Conservação',
+                        'Segurança Patrimonial' => 'Segurança Patrimonial',
+                        'Jardinagem e Zeladoria' => 'Jardinagem e Zeladoria',
+                        'Suporte Técnico / TI' => 'Suporte Técnico / TI',
+                    ]
+                    : [
+                        'DSM - Coordenação DSM' => 'Bloco A • Coordenação DSM',
+                        'GTI - Coordenação GTI' => 'Bloco A • Coordenação GTI',
+                        'Direção / Recursos Humanos' => 'Bloco Administrativo • Direção & RH',
+                        'Secretaria Acadêmica' => 'Bloco Administrativo • Secretaria',
+                        'Laboratórios Técnicos' => 'Bloco B • Laboratórios de Informática',
+                        'Biblioteca / Auditório' => 'Bloco C • Biblioteca & Auditório',
+                    ];
+
+                $opcoesValidade = [
+                    'Indeterminado' => 'Indeterminado (Acesso Permanente)',
+                    'Semestre Atual' => 'Semestre Letivo Atual (6 meses)',
+                    '1 Ano' => 'Anual (12 meses)',
+                    '90 Dias' => 'Trimestral (90 dias)',
+                    '30 Dias' => 'Temporário (30 dias)',
+                    '7 Dias' => 'Semanal (7 dias)',
+                ];
+            @endphp
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-on-surface">
-                        {{ $category === 'prestador' ? 'Empresa Terceirizada *' : 'Setor / Departamento' }}
+                    <label class="text-xs font-bold text-on-surface" for="condutor-department">
+                        {{ $category === 'prestador' ? 'Área / Empresa Terceirizada *' : 'Setor / Departamento' }}
                     </label>
-                    <input
+                    <select
                         wire:model="department"
-                        type="text"
-                        placeholder="{{ $category === 'prestador' ? 'Ex: TechManutenção Ltda' : 'Ex: Coordenação DSM, Secretaria...' }}"
-                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-xl focus:outline-none focus:border-primary"
-                    />
+                        id="condutor-department"
+                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                        @if ($department !== '' && ! array_key_exists($department, $opcoesDepartamento))
+                            <option value="{{ $department }}">{{ $department }}</option>
+                        @endif
+                        @foreach ($opcoesDepartamento as $valor => $rotulo)
+                            <option value="{{ $valor }}">{{ $rotulo }}</option>
+                        @endforeach
+                    </select>
                     @error('department') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-on-surface">Prazo de Autorização</label>
-                    <input
+                    <label class="text-xs font-bold text-on-surface" for="condutor-validity">
+                        Prazo de Autorização
+                    </label>
+                    <select
                         wire:model="accessValidity"
-                        type="text"
-                        placeholder="Ex: Indeterminado, 31/12/2026..."
-                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs rounded-xl focus:outline-none focus:border-primary"
-                    />
+                        id="condutor-validity"
+                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+                    >
+                        @if ($accessValidity !== '' && ! array_key_exists($accessValidity, $opcoesValidade))
+                            <option value="{{ $accessValidity }}">{{ $accessValidity }}</option>
+                        @endif
+                        @foreach ($opcoesValidade as $valor => $rotulo)
+                            <option value="{{ $valor }}">{{ $rotulo }}</option>
+                        @endforeach
+                    </select>
+                    @error('accessValidity') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
                 </div>
             </div>
 

@@ -48,7 +48,7 @@ class Condutores extends Component
 
     public string $code = '';
 
-    public string $department = '';
+    public string $department = 'DSM - Coordenação DSM';
 
     public string $accessValidity = 'Indeterminado';
 
@@ -81,6 +81,14 @@ class Condutores extends Component
         $this->resetPage();
     }
 
+    public function updatedCategory(): void
+    {
+        if ($this->editingId === null) {
+            $this->department = $this->defaultDepartmentForCategory($this->category);
+            $this->accessValidity = $this->category === 'prestador' ? 'Semestre Atual' : 'Indeterminado';
+        }
+    }
+
     public function addVehicle(): void
     {
         $this->vehicles[] = [
@@ -108,6 +116,9 @@ class Condutores extends Component
             'prestadores' => 'prestador',
             default => 'professor',
         };
+
+        $this->department = $this->defaultDepartmentForCategory($this->category);
+        $this->accessValidity = $this->category === 'prestador' ? 'Semestre Atual' : 'Indeterminado';
 
         $this->showFormModal = true;
     }
@@ -413,13 +424,22 @@ class Condutores extends Component
         $this->cpf = '';
         $this->category = 'professor';
         $this->code = '';
-        $this->department = '';
+        $this->department = 'DSM - Coordenação DSM';
         $this->accessValidity = 'Indeterminado';
         $this->status = 'ativo';
 
         $this->vehicles = [
             ['id' => null, 'plate' => '', 'model' => '', 'color' => ''],
         ];
+    }
+
+    private function defaultDepartmentForCategory(string $category): string
+    {
+        return match ($category) {
+            'funcionario' => 'Secretaria Acadêmica',
+            'prestador' => 'Manutenção Predial / Infraestrutura',
+            default => 'DSM - Coordenação DSM',
+        };
     }
 
     /**
