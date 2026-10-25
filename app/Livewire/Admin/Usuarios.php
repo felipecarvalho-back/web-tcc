@@ -4,7 +4,8 @@ namespace App\Livewire\Admin;
 
 use App\Enums\PerfilUsuario;
 use App\Models\Usuario;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Rules\CpfValido;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -117,6 +118,7 @@ class Usuarios extends Component
                 'required',
                 'min:11',
                 'max:14',
+                new CpfValido,
                 Rule::unique('usuarios', 'cpf')->ignore($this->editingId),
             ],
             'email' => [
