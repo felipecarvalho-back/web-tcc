@@ -17,8 +17,8 @@ class CpfValido implements ValidationRule
     {
         $cpf = preg_replace('/\D/', '', (string) $value) ?? '';
 
-        if (strlen($cpf) !== 11) {
-            $fail('Informe um CPF completo com 11 dígitos.');
+        if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf) === 1) {
+            $fail('Informe um CPF válido com 11 dígitos.');
 
             return;
         }

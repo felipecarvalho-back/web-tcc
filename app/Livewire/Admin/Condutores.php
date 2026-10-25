@@ -2,16 +2,35 @@
 
 namespace App\Livewire\Admin;
 
+use App\Livewire\Concerns\HasToast;
+use App\Models\Condutor;
+use App\Models\CondutorFuncionario;
+use App\Models\CondutorPrestador;
+use App\Models\CondutorProfessor;
+use App\Models\RegistroAcesso;
+use App\Models\Veiculo;
+use App\Rules\CpfValido;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
+/**
+ * @property-read LengthAwarePaginator $filteredPeople
+ */
 #[Layout('layouts.app')]
 #[Title('Admin - Gestão de Condutores e Veículos')]
 class Condutores extends Component
 {
-    public string $activeTab = 'professores'; // professores, funcionarios, prestadores
+    use HasToast, WithPagination;
+
+    public string $activeTab = 'professores';
 
     public string $search = '';
 
@@ -21,12 +40,13 @@ class Condutores extends Component
 
     public ?int $editingId = null;
 
-    // Form fields
     public string $name = '';
+
+    public string $cpf = '';
 
     public string $category = 'professor';
 
-    public string $code = ''; // Código funcional / Matrícula
+    public string $code = '';
 
     public string $department = '';
 
@@ -34,126 +54,46 @@ class Condutores extends Component
 
     public string $status = 'ativo';
 
-    // Professor pode ter N carros
+    /**
+     * @var array<int, array{id: int|null, plate: string, model: string, color: string}>
+     */
     public array $vehicles = [];
-
-    public string $toastMessage = '';
-
-    public string $toastType = 'success';
-
-    public array $people = [];
 
     public function mount(): void
     {
-        $this->people = [
-            // Professores (com N veículos vinculados)
-            [
-                'id' => 1,
-                'name' => 'Prof. Dr. Marcos Souza',
-                'category' => 'professor',
-                'code' => 'DOC-94281',
-                'department' => 'DSM - Desenvolvimento de Software Multiplataforma',
-                'vehicles' => [
-                    ['plate' => 'BRA-2E19', 'model' => 'Toyota Corolla', 'color' => 'Cinza'],
-                    ['plate' => 'FTC-1090', 'model' => 'Honda Civic', 'color' => 'Preto'],
-                ],
-                'validity' => 'Indeterminado',
-                'status' => 'ativo',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Profa. Dra. Juliana Rezende',
-                'category' => 'professor',
-                'code' => 'DOC-88312',
-                'department' => 'GTI - Gestão da Tecnologia da Informação',
-                'vehicles' => [
-                    ['plate' => 'GTR-4C88', 'model' => 'Honda HR-V', 'color' => 'Prata'],
-                ],
-                'validity' => 'Indeterminado',
-                'status' => 'ativo',
-            ],
-            [
-                'id' => 3,
-                'name' => 'Prof. Me. André Cavalcante',
-                'category' => 'professor',
-                'code' => 'DOC-74192',
-                'department' => 'Banco de Dados & IA',
-                'vehicles' => [
-                    ['plate' => 'KPL-3390', 'model' => 'VW T-Cross', 'color' => 'Branco'],
-                    ['plate' => 'AND-7700', 'model' => 'Yamaha MT-07', 'color' => 'Azul'],
-                    ['plate' => 'SPX-9122', 'model' => 'Fiat Pulse', 'color' => 'Cinza'],
-                ],
-                'validity' => 'Indeterminado',
-                'status' => 'ativo',
-            ],
-
-            // Funcionários Administrativos
-            [
-                'id' => 4,
-                'name' => 'Fernanda Guimarães',
-                'category' => 'funcionario',
-                'code' => 'ADM-10293',
-                'department' => 'Secretaria Acadêmica Central',
-                'vehicles' => [
-                    ['plate' => 'ADM-9021', 'model' => 'Hyundai HB20', 'color' => 'Preto'],
-                ],
-                'validity' => 'Indeterminado',
-                'status' => 'ativo',
-            ],
-            [
-                'id' => 5,
-                'name' => 'Marcelo Andrade',
-                'category' => 'funcionario',
-                'code' => 'ADM-23910',
-                'department' => 'Diretoria de Serviços e Finanças',
-                'vehicles' => [
-                    ['plate' => 'MCA-5544', 'model' => 'Chevrolet Tracker', 'color' => 'Azul'],
-                ],
-                'validity' => 'Indeterminado',
-                'status' => 'ativo',
-            ],
-
-            // Prestadores de Serviço
-            [
-                'id' => 6,
-                'name' => 'Carlos Silva',
-                'category' => 'prestador',
-                'code' => 'PST-5512',
-                'department' => 'Manutenção Predial / Ar-Condicionado',
-                'vehicles' => [
-                    ['plate' => 'ABC-1234', 'model' => 'Fiat Fiorino', 'color' => 'Branca'],
-                    ['plate' => 'FIO-8822', 'model' => 'Fiat Strada', 'color' => 'Branca'],
-                ],
-                'validity' => '31/12/2026',
-                'status' => 'ativo',
-            ],
-            [
-                'id' => 7,
-                'name' => 'Elétrica Volt Manutenção',
-                'category' => 'prestador',
-                'code' => 'PST-9901',
-                'department' => 'Infraestrutura Elétrica',
-                'vehicles' => [
-                    ['plate' => 'VLT-7711', 'model' => 'Renault Master', 'color' => 'Cinza'],
-                ],
-                'validity' => '15/11/2026',
-                'status' => 'inativo',
-            ],
-        ];
-
         $this->vehicles = [
-            ['plate' => '', 'model' => '', 'color' => 'Prata'],
+            ['id' => null, 'plate' => '', 'model' => '', 'color' => ''],
         ];
+    }
+
+    public function updatedActiveTab(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage();
     }
 
     public function addVehicle(): void
     {
-        $this->vehicles[] = ['plate' => '', 'model' => '', 'color' => 'Prata'];
+        $this->vehicles[] = [
+            'id' => null,
+            'plate' => '',
+            'model' => '',
+            'color' => '',
+        ];
     }
 
     public function removeVehicle(int $index): void
     {
-        if (count($this->vehicles) > 1) {
+        if (count($this->vehicles) > 1 && isset($this->vehicles[$index])) {
             unset($this->vehicles[$index]);
             $this->vehicles = array_values($this->vehicles);
         }
@@ -162,39 +102,67 @@ class Condutores extends Component
     public function openCreateModal(): void
     {
         $this->resetForm();
+
         $this->category = match ($this->activeTab) {
             'funcionarios' => 'funcionario',
             'prestadores' => 'prestador',
             default => 'professor',
         };
-        $this->code = match ($this->category) {
-            'professor' => 'DOC-'.rand(10000, 99999),
-            'funcionario' => 'ADM-'.rand(10000, 99999),
-            'prestador' => 'PST-'.rand(1000, 9999),
-        };
-        $this->vehicles = [
-            ['plate' => '', 'model' => '', 'color' => 'Prata'],
-        ];
+
         $this->showFormModal = true;
     }
 
     public function openEditModal(int $id): void
     {
-        foreach ($this->people as $person) {
-            if ($person['id'] === $id) {
-                $this->editingId = $id;
-                $this->name = $person['name'];
-                $this->category = $person['category'];
-                $this->code = $person['code'];
-                $this->department = $person['department'];
-                $this->vehicles = $person['vehicles'];
-                $this->accessValidity = $person['validity'];
-                $this->status = $person['status'];
-                $this->showFormModal = true;
+        $condutor = Condutor::with([
+            'veiculos',
+            'professor',
+            'funcionario',
+            'prestador',
+        ])->findOrFail($id);
 
-                return;
-            }
+        $this->resetForm();
+
+        $this->editingId = $condutor->id;
+        $this->name = $condutor->nome;
+        $this->cpf = $condutor->cpf;
+        $this->category = $condutor->tipo;
+        $this->accessValidity = $condutor->validade_acesso ?? 'Indeterminado';
+        $this->status = $condutor->ativo ? 'ativo' : 'inativo';
+
+        $especializacao = match ($condutor->tipo) {
+            'professor' => $condutor->professor,
+            'funcionario' => $condutor->funcionario,
+            'prestador' => $condutor->prestador,
+            default => null,
+        };
+
+        $this->code = $especializacao?->codigo_acesso ?? '';
+
+        $this->department = match ($condutor->tipo) {
+            'professor' => $condutor->professor?->departamento ?? '',
+            'funcionario' => $condutor->funcionario?->setor ?? '',
+            'prestador' => $condutor->prestador?->empresa ?? '',
+            default => '',
+        };
+
+        $this->vehicles = $condutor->veiculos->map(function ($veiculo): array {
+            /** @var Veiculo $veiculo */
+            return [
+                'id' => $veiculo->id,
+                'plate' => $veiculo->placa,
+                'model' => $veiculo->modelo ?? '',
+                'color' => ($veiculo->cor && $veiculo->cor !== 'Não informada') ? $veiculo->cor : '',
+            ];
+        })->values()->all();
+
+        if (empty($this->vehicles)) {
+            $this->vehicles = [
+                ['id' => null, 'plate' => '', 'model' => '', 'color' => ''],
+            ];
         }
+
+        $this->showFormModal = true;
     }
 
     public function closeFormModal(): void
@@ -205,154 +173,354 @@ class Condutores extends Component
 
     public function save(): void
     {
-        $this->validate([
-            'name' => 'required|min:3',
-            'code' => 'required|min:3',
-            'vehicles.0.plate' => 'required|min:7',
-        ], [
-            'name.required' => 'O nome é obrigatório.',
+        $this->cpf = trim($this->cpf);
+        $this->code = strtoupper(trim($this->code));
+
+        foreach ($this->vehicles as $index => $vehicle) {
+            $placaBruta = trim((string) ($vehicle['plate'] ?? ''));
+            $this->vehicles[$index]['plate'] = $placaBruta !== ''
+                ? RegistroAcesso::formatarPlaca($placaBruta)
+                : '';
+        }
+
+        $tabelaCodigo = match ($this->category) {
+            'funcionario' => 'condutores_funcionarios',
+            'prestador' => 'condutores_prestadores',
+            default => 'condutores_professores',
+        };
+
+        $rules = [
+            'name' => ['required', 'string', 'min:3', 'max:100'],
+            'cpf' => [
+                'required',
+                'string',
+                'max:14',
+                new CpfValido,
+                Rule::unique('condutores', 'cpf')
+                    ->ignore($this->editingId)
+                    ->whereNull('deleted_at'),
+            ],
+            'category' => [
+                'required',
+                Rule::in(['professor', 'funcionario', 'prestador']),
+            ],
+            'code' => [
+                'required',
+                'string',
+                'min:3',
+                'max:20',
+                Rule::unique($tabelaCodigo, 'codigo_acesso')
+                    ->ignore($this->editingId, 'condutor_id'),
+            ],
+            'department' => [
+                Rule::requiredIf($this->category === 'prestador'),
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'accessValidity' => ['nullable', 'string', 'max:50'],
+            'status' => ['required', Rule::in(['ativo', 'inativo'])],
+            'vehicles' => ['required', 'array', 'min:1'],
+            'vehicles.*.plate' => [
+                'required',
+                'string',
+                'min:7',
+                'max:10',
+                'distinct',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $partes = explode('.', $attribute);
+                    $index = (int) ($partes[1] ?? 0);
+                    $veiculoId = $this->vehicles[$index]['id'] ?? null;
+
+                    $existe = Veiculo::query()
+                        ->where('placa', (string) $value)
+                        ->when($veiculoId, fn (Builder $q) => $q->where('id', '!=', $veiculoId))
+                        ->exists();
+
+                    if ($existe) {
+                        $fail('Esta placa já pertence a outro veículo ativo.');
+                    }
+                },
+            ],
+            'vehicles.*.model' => ['required', 'string', 'max:50'],
+            'vehicles.*.color' => ['nullable', 'string', 'max:30'],
+        ];
+
+        $this->validate($rules, [
+            'name.required' => 'O nome do condutor é obrigatório.',
+            'name.min' => 'O nome deve ter pelo menos 3 caracteres.',
+            'cpf.required' => 'O CPF é obrigatório.',
+            'cpf.unique' => 'Este CPF já está cadastrado para outro condutor.',
             'code.required' => 'O código de acesso/matrícula é obrigatório.',
-            'vehicles.0.plate.required' => 'Cadastre ao menos a placa do primeiro veículo.',
+            'code.unique' => 'Este código já está cadastrado para essa categoria.',
+            'department.required' => 'Informe a empresa do prestador de serviço.',
+            'vehicles.*.plate.required' => 'Informe a placa do veículo.',
+            'vehicles.*.plate.min' => 'A placa deve ter pelo menos 7 caracteres.',
+            'vehicles.*.plate.distinct' => 'Você informou placas repetidas para o mesmo condutor.',
+            'vehicles.*.plate.unique' => 'Esta placa já pertence a outro veículo ativo.',
+            'vehicles.*.model.required' => 'Informe o modelo do veículo.',
         ]);
 
-        // Formatar placas em maiúsculo
-        $formattedVehicles = array_map(function ($veh) {
-            return [
-                'plate' => strtoupper(trim($veh['plate'])),
-                'model' => $veh['model'] ?: 'Não informado',
-                'color' => $veh['color'] ?: 'Padrão',
-            ];
-        }, array_filter($this->vehicles, fn ($v) => ! empty(trim($v['plate']))));
+        $veiculosValidos = collect($this->vehicles)
+            ->filter(fn (array $vehicle): bool => trim($vehicle['plate'] ?? '') !== '')
+            ->values();
 
-        if (empty($formattedVehicles)) {
-            $formattedVehicles[] = [
-                'plate' => 'SEM-PLACA',
-                'model' => 'Não informado',
-                'color' => 'Padrão',
-            ];
-        }
+        $wasEditing = $this->editingId !== null;
 
-        if ($this->editingId) {
-            foreach ($this->people as &$person) {
-                if ($person['id'] === $this->editingId) {
-                    $person['name'] = $this->name;
-                    $person['category'] = $this->category;
-                    $person['code'] = $this->code;
-                    $person['department'] = $this->department;
-                    $person['vehicles'] = $formattedVehicles;
-                    $person['validity'] = $this->accessValidity;
-                    $person['status'] = $this->status;
-                    break;
-                }
+        DB::transaction(function () use ($veiculosValidos): void {
+            $categoriaAnterior = null;
+
+            if ($this->editingId) {
+                $condutor = Condutor::with('veiculos')->findOrFail($this->editingId);
+                $categoriaAnterior = $condutor->tipo;
+                $condutor->update([
+                    'nome' => trim($this->name),
+                    'cpf' => trim($this->cpf),
+                    'tipo' => $this->category,
+                    'validade_acesso' => $this->accessValidity ?: 'Indeterminado',
+                    'ativo' => $this->status === 'ativo',
+                ]);
+            } else {
+                $condutor = Condutor::withTrashed()->updateOrCreate(
+                    ['cpf' => trim($this->cpf)],
+                    [
+                        'nome' => trim($this->name),
+                        'tipo' => $this->category,
+                        'validade_acesso' => $this->accessValidity ?: 'Indeterminado',
+                        'ativo' => $this->status === 'ativo',
+                        'deleted_at' => null,
+                    ]
+                );
             }
-            $this->triggerToast('Cadastro e veículos atualizados com sucesso!', 'success');
-        } else {
-            $newId = count($this->people) + 1;
-            $this->people[] = [
-                'id' => $newId,
-                'name' => $this->name,
-                'category' => $this->category,
-                'code' => strtoupper(trim($this->code)),
-                'department' => $this->department ?: 'Geral',
-                'vehicles' => $formattedVehicles,
-                'validity' => $this->accessValidity ?: 'Indeterminado',
-                'status' => $this->status,
-            ];
-            $this->triggerToast('Novo condutor cadastrado com '.count($formattedVehicles).' veículo(s)!', 'success');
-        }
+
+            if ($categoriaAnterior !== null && $categoriaAnterior !== $this->category) {
+                CondutorProfessor::where('condutor_id', $condutor->id)->delete();
+                CondutorFuncionario::where('condutor_id', $condutor->id)->delete();
+                CondutorPrestador::where('condutor_id', $condutor->id)->delete();
+            }
+
+            match ($this->category) {
+                'professor' => CondutorProfessor::updateOrCreate(
+                    ['condutor_id' => $condutor->id],
+                    [
+                        'codigo_acesso' => $this->code,
+                        'departamento' => $this->department ?: null,
+                    ]
+                ),
+                'funcionario' => CondutorFuncionario::updateOrCreate(
+                    ['condutor_id' => $condutor->id],
+                    [
+                        'codigo_acesso' => $this->code,
+                        'setor' => $this->department ?: null,
+                    ]
+                ),
+                'prestador' => CondutorPrestador::updateOrCreate(
+                    ['condutor_id' => $condutor->id],
+                    [
+                        'codigo_acesso' => $this->code,
+                        'empresa' => $this->department,
+                    ]
+                ),
+            };
+
+            $idsEnviados = [];
+
+            foreach ($veiculosValidos as $vehicle) {
+                $placaFormatada = RegistroAcesso::formatarPlaca($vehicle['plate']);
+                $corFormatada = trim((string) ($vehicle['color'] ?? '')) !== ''
+                    ? trim((string) $vehicle['color'])
+                    : 'Não informada';
+
+                $dadosVeiculo = [
+                    'condutor_id' => $condutor->id,
+                    'placa' => $placaFormatada,
+                    'modelo' => trim((string) ($vehicle['model'] ?? '')) ?: 'Veículo de Passeio',
+                    'cor' => $corFormatada,
+                    'ativo' => $condutor->ativo,
+                    'deleted_at' => null,
+                ];
+
+                if (! empty($vehicle['id'])) {
+                    $veiculo = Veiculo::where('condutor_id', $condutor->id)
+                        ->findOrFail($vehicle['id']);
+
+                    $veiculo->update($dadosVeiculo);
+                } else {
+                    $veiculo = Veiculo::withTrashed()->updateOrCreate(
+                        ['placa' => $placaFormatada],
+                        $dadosVeiculo
+                    );
+                }
+
+                $idsEnviados[] = $veiculo->id;
+            }
+
+            $condutor->veiculos()
+                ->whereNotIn('id', $idsEnviados)
+                ->delete();
+        });
+
+        $mensagem = $wasEditing
+            ? 'Condutor atualizado com sucesso!'
+            : 'Condutor cadastrado com sucesso!';
 
         $this->closeFormModal();
+        unset($this->filteredPeople);
+        $this->triggerToast($mensagem, 'success');
     }
 
     public function delete(int $id): void
     {
-        $this->people = array_filter($this->people, fn ($item) => $item['id'] !== $id);
-        $this->triggerToast('Registro excluído com sucesso!', 'info');
+        DB::transaction(function () use ($id): void {
+            $condutor = Condutor::findOrFail($id);
+
+            $condutor->veiculos()->delete();
+
+            CondutorProfessor::where('condutor_id', $id)->delete();
+            CondutorFuncionario::where('condutor_id', $id)->delete();
+            CondutorPrestador::where('condutor_id', $id)->delete();
+
+            $condutor->delete();
+        });
+
+        unset($this->filteredPeople);
+        $this->triggerToast('Condutor excluído com sucesso!', 'info');
     }
 
     public function toggleStatus(int $id): void
     {
-        foreach ($this->people as &$person) {
-            if ($person['id'] === $id) {
-                $person['status'] = $person['status'] === 'ativo' ? 'inativo' : 'ativo';
-                $this->triggerToast("Status alterado para {$person['status']}!", 'info');
-                break;
-            }
-        }
+        $condutor = Condutor::findOrFail($id);
+        $condutor->ativo = ! $condutor->ativo;
+        $condutor->save();
+
+        $condutor->veiculos()->update([
+            'ativo' => $condutor->ativo,
+        ]);
+
+        unset($this->filteredPeople);
+        $this->triggerToast(
+            'Status alterado para '.($condutor->ativo ? 'ativo' : 'inativo').'!',
+            'info'
+        );
     }
 
     private function resetForm(): void
     {
+        $this->resetValidation();
+
         $this->editingId = null;
         $this->name = '';
+        $this->cpf = '';
+        $this->category = 'professor';
         $this->code = '';
         $this->department = '';
-        $this->vehicles = [
-            ['plate' => '', 'model' => '', 'color' => 'Prata'],
-        ];
         $this->accessValidity = 'Indeterminado';
         $this->status = 'ativo';
+
+        $this->vehicles = [
+            ['id' => null, 'plate' => '', 'model' => '', 'color' => ''],
+        ];
     }
 
-    public function triggerToast(string $message, string $type = 'success'): void
-    {
-        $this->toastMessage = $message;
-        $this->toastType = $type;
-    }
-
-    public function clearToast(): void
-    {
-        $this->toastMessage = '';
-    }
-
+    /**
+     * Consulta paginada e filtrada diretamente no banco de dados (SQL).
+     */
     #[Computed]
-    public function filteredPeople(): array
+    public function filteredPeople(): LengthAwarePaginator
     {
-        return array_filter($this->people, function ($item) {
-            // Tab filter
-            $categoryMatch = match ($this->activeTab) {
-                'professores' => $item['category'] === 'professor',
-                'funcionarios' => $item['category'] === 'funcionario',
-                'prestadores' => $item['category'] === 'prestador',
-                default => true,
+        $categoria = match ($this->activeTab) {
+            'funcionarios' => 'funcionario',
+            'prestadores' => 'prestador',
+            default => 'professor',
+        };
+
+        $query = Condutor::query()
+            ->select(['id', 'nome', 'cpf', 'tipo', 'validade_acesso', 'ativo'])
+            ->with([
+                'veiculos:id,condutor_id,placa,modelo,cor',
+                'professor:condutor_id,codigo_acesso,departamento',
+                'funcionario:condutor_id,codigo_acesso,setor',
+                'prestador:condutor_id,codigo_acesso,empresa',
+            ])
+            ->where('tipo', $categoria);
+
+        if ($this->statusFilter === 'ativo') {
+            $query->where('ativo', true);
+        } elseif ($this->statusFilter === 'inativo') {
+            $query->where('ativo', false);
+        }
+
+        $termo = trim($this->search);
+        if ($termo !== '') {
+            $termoUpper = strtoupper($termo);
+            $semHifen = str_replace('-', '', $termoUpper);
+
+            $query->where(function (Builder $q) use ($termo, $termoUpper, $semHifen): void {
+                $q->whereLike('nome', "%{$termo}%")
+                    ->orWhereLike('cpf', "%{$termo}%")
+                    ->orWhereHas('veiculos', function (Builder $vq) use ($termoUpper, $semHifen): void {
+                        $vq->whereLike('placa', "%{$termoUpper}%")
+                            ->orWhereLike('placa', "%{$semHifen}%");
+                    })
+                    ->orWhereHas('professor', function (Builder $pq) use ($termo, $termoUpper): void {
+                        $pq->whereLike('codigo_acesso', "%{$termoUpper}%")
+                            ->orWhereLike('departamento', "%{$termo}%");
+                    })
+                    ->orWhereHas('funcionario', function (Builder $fq) use ($termo, $termoUpper): void {
+                        $fq->whereLike('codigo_acesso', "%{$termoUpper}%")
+                            ->orWhereLike('setor', "%{$termo}%");
+                    })
+                    ->orWhereHas('prestador', function (Builder $prq) use ($termo, $termoUpper): void {
+                        $prq->whereLike('codigo_acesso', "%{$termoUpper}%")
+                            ->orWhereLike('empresa', "%{$termo}%");
+                    });
+            });
+        }
+
+        $query->orderByDesc('id');
+
+        /** @var LengthAwarePaginator $paginator */
+        $paginator = $query->paginate(10);
+
+        return $paginator->through(function ($condutor): array {
+            /** @var Condutor $condutor */
+            $especializacao = match ($condutor->tipo) {
+                'professor' => $condutor->professor,
+                'funcionario' => $condutor->funcionario,
+                'prestador' => $condutor->prestador,
+                default => null,
             };
 
-            if (! $categoryMatch) {
-                return false;
-            }
+            $departamento = match ($condutor->tipo) {
+                'professor' => $condutor->professor?->departamento ?? 'Não informado',
+                'funcionario' => $condutor->funcionario?->setor ?? 'Não informado',
+                'prestador' => $condutor->prestador?->empresa ?? 'Não informada',
+                default => '',
+            };
 
-            // Status filter
-            if ($this->statusFilter !== 'todos' && $item['status'] !== $this->statusFilter) {
-                return false;
-            }
-
-            // Search filter
-            if ($this->search) {
-                $term = trim($this->search);
-                $found = (stripos($item['name'], $term) !== false) ||
-                         (stripos($item['department'], $term) !== false) ||
-                         (stripos($item['code'], $term) !== false);
-
-                if (! $found) {
-                    // Check within all vehicles plates
-                    foreach ($item['vehicles'] as $v) {
-                        if (stripos($v['plate'], $term) !== false) {
-                            $found = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (! $found) {
-                    return false;
-                }
-            }
-
-            return true;
+            return [
+                'id' => $condutor->id,
+                'name' => $condutor->nome,
+                'cpf' => $condutor->cpf,
+                'category' => $condutor->tipo,
+                'code' => $especializacao?->codigo_acesso ?? '--',
+                'department' => $departamento,
+                'vehicles' => $condutor->veiculos->map(function ($vehicle): array {
+                    /** @var Veiculo $vehicle */
+                    return [
+                        'id' => $vehicle->id,
+                        'plate' => RegistroAcesso::formatarPlaca($vehicle->placa),
+                        'model' => $vehicle->modelo ?? '',
+                        'color' => $vehicle->cor ?? '',
+                    ];
+                })->all(),
+                'validity' => $condutor->validade_acesso ?? 'Indeterminado',
+                'status' => $condutor->ativo ? 'ativo' : 'inativo',
+            ];
         });
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.admin.condutores', [
             'filteredPeople' => $this->filteredPeople,
