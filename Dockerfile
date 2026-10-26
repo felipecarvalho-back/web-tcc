@@ -101,16 +101,14 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && \
     chmod +x /usr/local/bin/entrypoint.sh
 
-# Garante diretórios essenciais e permissões para www-data
+# Garante diretórios essenciais e permissões para www-data (sem forçar SQLite no build)
 RUN mkdir -p /app/storage/framework/sessions \
              /app/storage/framework/views \
              /app/storage/framework/cache \
              /app/storage/logs \
-             /app/bootstrap/cache \
-             /app/database && \
-    touch /app/database/database.sqlite && \
-    chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/database && \
-    chmod -R 775 /app/storage /app/bootstrap/cache /app/database
+             /app/bootstrap/cache && \
+    chown -R www-data:www-data /app/storage /app/bootstrap/cache && \
+    chmod -R 775 /app/storage /app/bootstrap/cache
 
 # Porta padrão do Render
 EXPOSE 10000

@@ -5,12 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: sentinela-portaria
     ports:
-      - "8080:10000"
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_URL=http://localhost:8080
-      - DB_CONNECTION=sqlite
-      - SESSION_DRIVER=database
-      - CACHE_STORE=database
+      - "${PORT:-8080}:10000"
+    env_file:
+      - .env
     restart: unless-stopped
