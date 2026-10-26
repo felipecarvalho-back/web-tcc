@@ -1,13 +1,16 @@
 #!/bin/sh
 set -e
 
-# Garante diretório e arquivo para banco SQLite
-mkdir -p /app/database
-if [ ! -f /app/database/database.sqlite ]; then
-    touch /app/database/database.sqlite
+# Só cria/configura o SQLite se a conexão ativa for sqlite
+if [ "$DB_CONNECTION" = "sqlite" ]; then
+    echo "[Sentinela] Configuração detectada como SQLite. Garantindo arquivo local..."
+    mkdir -p /app/database
+    if [ ! -f /app/database/database.sqlite ]; then
+        touch /app/database/database.sqlite
+    fi
+    chown -R www-data:www-data /app/database 2>/dev/null || true
+    chmod -R 775 /app/database 2>/dev/null || true
 fi
-chown -R www-data:www-data /app/database 2>/dev/null || true
-chmod -R 775 /app/database 2>/dev/null || true
 
 # Garante diretórios de cache e logs do Laravel
 mkdir -p /app/storage/framework/sessions \
@@ -28,8 +31,8 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force --no-interaction
 fi
 
-# Executa migrações e seeders no banco de dados para sessões, cache e tabelas base
-echo "[Sentinela] Executando migracoes e seeders do banco de dados..."
+# Executa migrações e seeders no banco de dados ativo (SQLite ou Postgres)
+echo "[Sentinela] Executando migracoes e seeders do banco de dados ($DB_CONNECTION)..."
 php artisan migrate --force --seed --graceful --no-interaction
 
 # Otimizações de cache em ambiente de produção
