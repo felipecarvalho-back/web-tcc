@@ -42,7 +42,11 @@ test('salva localmente quando variaveis de ambiente do cloudinary nao estao conf
     Config::set('services.python_api.token', 'token_teste');
 
     Http::fake([
-        '*/detectar-placa' => Http::response(['placa' => 'BRA2E19'], 200),
+        '*/detectar-placa' => Http::response([
+            'placa' => 'BRA2E19',
+            'encontrada' => true,
+            'mensagem' => 'Placa detectada com sucesso.',
+        ], 200),
     ]);
 
     $file = UploadedFile::fake()->image('placa.jpg');
@@ -80,7 +84,11 @@ test('salva na nuvem quando variaveis do cloudinary estao configuradas e exibe n
     Config::set('services.python_api.token', 'token_teste');
 
     Http::fake([
-        '*/detectar-placa' => Http::response(['placa' => 'ABC1234'], 200),
+        '*/detectar-placa' => Http::response([
+            'placa' => 'ABC1234',
+            'encontrada' => true,
+            'mensagem' => 'Placa detectada com sucesso.',
+        ], 200),
     ]);
 
     $mockCloudinary = Mockery::mock(CloudinaryService::class);
@@ -127,8 +135,10 @@ test('registra como nao cadastrado quando a api python nao identifica placa na i
 
     Http::fake([
         '*/detectar-placa' => Http::response([
-            'detail' => 'Nenhuma placa veicular valida foi identificada na imagem.',
-        ], 404),
+            'placa' => null,
+            'encontrada' => false,
+            'mensagem' => 'Nenhuma placa veicular valida foi identificada na imagem.',
+        ], 200),
     ]);
 
     $file = UploadedFile::fake()->image('sem_placa.jpg');

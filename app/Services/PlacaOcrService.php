@@ -34,14 +34,23 @@ class PlacaOcrService
                 ->post("{$baseUrl}/detectar-placa");
 
             if ($response->successful()) {
-                $placa = $response->json('placa');
+                $dados = $response->json();
 
-                return is_string($placa) && trim($placa) !== ''
-                    ? strtoupper(trim($placa))
-                    : null;
+                $encontrada = (bool) ($dados['encontrada'] ?? false);
+                $placa = $dados['placa'] ?? null;
+
+                if ($encontrada && is_string($placa) && trim($placa) !== '') {
+                    return strtoupper(trim($placa));
+                }
+
+                Log::info('API Python processou a imagem com sucesso, mas nenhuma placa foi identificada:', [
+                    'mensagem' => $dados['mensagem'] ?? 'Nenhuma placa detectada',
+                ]);
+
+                return null;
             }
 
-            Log::warning('API Python não identificou placa ou retornou erro:', [
+            Log::warning('API Python retornou erro HTTP na detecção de placa:', [
                 'status' => $response->status(),
                 'response' => $response->json(),
             ]);
