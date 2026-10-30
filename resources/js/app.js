@@ -1,5 +1,5 @@
-import mask from '@alpinejs/mask';
+import mask from "@alpinejs/mask";
 
-document.addEventListener('alpine:init', () => {
+document.addEventListener("alpine:init", () => {
     window.Alpine.plugin(mask);
 });

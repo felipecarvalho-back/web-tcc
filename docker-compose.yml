@@ -1,11 +1,11 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sentinela-portaria
-    ports:
-      - "${PORT:-8080}:10000"
-    env_file:
-      - .env
-    restart: unless-stopped
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: sentinela-portaria
+        ports:
+            - "${PORT:-8080}:10000"
+        env_file:
+            - .env
+        restart: unless-stopped

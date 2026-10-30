@@ -154,8 +154,28 @@
                             </td>
 
                             <!-- Validade -->
-                            <td class="py-3 px-4 font-mono text-on-surface font-semibold">
-                                {{ $person['validity'] }}
+                            <td class="py-3 px-4">
+                                @if (($person['validity_status'] ?? '') === 'expirado')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-error-container text-error" title="Autorização vencida">
+                                        <span class="material-symbols-outlined text-[14px]">event_busy</span>
+                                        <span>{{ $person['validity'] }}</span>
+                                    </span>
+                                @elseif (($person['validity_status'] ?? '') === 'alerta')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300" title="Vence em breve">
+                                        <span class="material-symbols-outlined text-[14px]">timer</span>
+                                        <span>{{ $person['validity'] }}</span>
+                                    </span>
+                                @elseif (($person['validity_status'] ?? '') === 'valido')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-surface-container-high text-on-surface" title="Autorização ativa">
+                                        <span class="material-symbols-outlined text-[14px] text-emerald-600">event_available</span>
+                                        <span>{{ $person['validity'] }}</span>
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-surface-container text-on-surface-variant">
+                                        <span class="material-symbols-outlined text-[14px]">all_inclusive</span>
+                                        <span>{{ $person['validity'] }}</span>
+                                    </span>
+                                @endif
                             </td>
 
                             <!-- Status -->

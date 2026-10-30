@@ -163,3 +163,100 @@ it('caso 3: permite carro de terceiro apenas para professor e funcionario pelo c
         ->and($atualizado->condutor_id)->toBe($this->funcionario->id)
         ->and($atualizado->veiculo_id)->toBeNull();
 });
+
+it('permite que o operador da guarita bloqueie o registro quando o veiculo nao for cadastrado e nao tiver codigo', function () {
+    $registro = RegistroAcesso::create([
+        'veiculo_id' => null,
+        'condutor_id' => null,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+        'placa_registro' => 'XYZ-9999',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now(),
+        'status' => StatusAcesso::NaoCadastrado,
+    ]);
+
+    Livewire::test(Monitoramento::class)
+        ->call('openBlockModal', $registro->id)
+        ->assertSet('showBlockModal', true)
+        ->set('blockReason', 'Condutor não possui código de acesso')
+        ->set('blockCustomJustification', 'Veículo recusado por falta de cadastro e código')
+        ->call('confirmBlock')
+        ->assertSet('showBlockModal', false);
+
+    $atualizado = $registro->fresh();
+    expect($atualizado->status)->toBe(StatusAcesso::Bloqueado)
+        ->and($atualizado->justificativa)->toContain('Veículo recusado por falta de cadastro e código');
+
+    // Testar reversão / reabertura do registro
+    Livewire::test(Monitoramento::class)
+        ->call('unblockRecord', $registro->id);
+
+    expect($registro->fresh()->status)->toBe(StatusAcesso::NaoCadastrado);
+});
+
+it('permite acionar o bloqueio de acesso diretamente de dentro do modal de verificacao', function () {
+    $registro = RegistroAcesso::create([
+        'veiculo_id' => null,
+        'condutor_id' => null,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+        'placa_registro' => 'SEM-PLACA',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now(),
+        'status' => StatusAcesso::NaoCadastrado,
+    ]);
+
+    Livewire::test(Monitoramento::class)
+        ->call('openVerificationModal', $registro->id)
+        ->assertSet('showVerificationModal', true)
+        ->call('openBlockModal', $registro->id)
+        ->assertSet('showVerificationModal', false)
+        ->assertSet('showBlockModal', true)
+        ->call('confirmBlock');
+
+    expect($registro->fresh()->status)->toBe(StatusAcesso::Bloqueado);
+});
+
+it('bloqueia a liberacao de condutor com prazo de autorizacao expirado', function () {
+    $ontem = Carbon::yesterday()->format('Y-m-d');
+
+    $condutorExpirado = Condutor::create([
+        'nome' => 'Professor Contrato Vencido',
+        'cpf' => '654.321.987-00',
+        'tipo' => 'professor',
+        'validade_acesso' => $ontem,
+        'ativo' => true,
+    ]);
+
+    CondutorProfessor::create([
+        'condutor_id' => $condutorExpirado->id,
+        'codigo_acesso' => 'DOC-00001',
+        'departamento' => 'Engenharia',
+    ]);
+
+    $veiculo = Veiculo::create([
+        'condutor_id' => $condutorExpirado->id,
+        'placa' => 'VNC-9999',
+        'modelo' => 'Focus',
+        'cor' => 'Branco',
+        'ativo' => true,
+    ]);
+
+    $registro = RegistroAcesso::create([
+        'veiculo_id' => $veiculo->id,
+        'condutor_id' => $condutorExpirado->id,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+        'placa_registro' => 'VNC-9999',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now(),
+        'status' => StatusAcesso::Pendente,
+    ]);
+
+    Livewire::test(Monitoramento::class)
+        ->call('openDriverConfirmationModal', $registro->id)
+        ->assertSet('selectedRecord.is_driver_expired', true)
+        ->set('confirmDriverCode', 'DOC-00001')
+        ->call('confirmDriver')
+        ->assertHasErrors(['confirmDriverCode']);
+
+    expect($registro->fresh()->status)->toBe(StatusAcesso::Pendente);
+});

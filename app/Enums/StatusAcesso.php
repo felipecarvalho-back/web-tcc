@@ -23,7 +23,8 @@ enum StatusAcesso: string
 
         return match ($this) {
             self::Autorizado, self::EmPatio, self::LiberadoManual => 'autorizado',
-            self::NaoCadastrado, self::Bloqueado => 'nao_cadastrado',
+            self::Bloqueado => 'bloqueado',
+            self::NaoCadastrado => 'nao_cadastrado',
             default => 'pendente',
         };
     }

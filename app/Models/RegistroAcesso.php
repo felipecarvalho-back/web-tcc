@@ -131,6 +131,7 @@ class RegistroAcesso extends Model
             'pendente' => $query->where('status', StatusAcesso::Pendente)->whereNull('data_hora_saida'),
             'autorizado' => $query->whereIn('status', StatusAcesso::authorizedValues())->whereNull('data_hora_saida'),
             'nao_cadastrado' => $query->whereIn('status', StatusAcesso::unregisteredValues())->whereNull('data_hora_saida'),
+            'bloqueado' => $query->where('status', StatusAcesso::Bloqueado)->whereNull('data_hora_saida'),
             'saida' => $query->where(function (Builder $q) {
                 $q->where('status', StatusAcesso::Finalizado)->orWhereNotNull('data_hora_saida');
             }),
@@ -243,6 +244,8 @@ class RegistroAcesso extends Model
             'image_url' => $this->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
             'is_registered' => (bool) $this->veiculo_id,
             'is_visitor' => $this->condutor?->tipo === 'visitante',
+            'driver_validity' => $this->condutor?->formatarValidadeParaExibicao() ?? 'Permanente',
+            'is_driver_expired' => $this->condutor?->estaComAcessoExpirado() ?? false,
         ];
     }
 

@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <!-- Departamento / Empresa & Validade -->
+            <!-- Departamento / Empresa -->
             @php
                 $opcoesDepartamento = $category === 'prestador'
                     ? [
@@ -93,55 +93,186 @@
                         'Laboratórios Técnicos' => 'Bloco B • Laboratórios de Informática',
                         'Biblioteca / Auditório' => 'Bloco C • Biblioteca & Auditório',
                     ];
-
-                $opcoesValidade = [
-                    'Indeterminado' => 'Indeterminado (Acesso Permanente)',
-                    'Semestre Atual' => 'Semestre Letivo Atual (6 meses)',
-                    '1 Ano' => 'Anual (12 meses)',
-                    '90 Dias' => 'Trimestral (90 dias)',
-                    '30 Dias' => 'Temporário (30 dias)',
-                    '7 Dias' => 'Semanal (7 dias)',
-                ];
             @endphp
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-on-surface" for="condutor-department">
-                        {{ $category === 'prestador' ? 'Área / Empresa Terceirizada *' : 'Setor / Departamento' }}
-                    </label>
-                    <select
-                        wire:model="department"
-                        id="condutor-department"
-                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
-                    >
-                        @if ($department !== '' && ! array_key_exists($department, $opcoesDepartamento))
-                            <option value="{{ $department }}">{{ $department }}</option>
-                        @endif
-                        @foreach ($opcoesDepartamento as $valor => $rotulo)
-                            <option value="{{ $valor }}">{{ $rotulo }}</option>
-                        @endforeach
-                    </select>
-                    @error('department') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold text-on-surface" for="condutor-department">
+                    {{ $category === 'prestador' ? 'Área / Empresa Terceirizada *' : 'Setor / Departamento' }}
+                </label>
+                <select
+                    wire:model="department"
+                    id="condutor-department"
+                    class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
+                >
+                    @if ($department !== '' && ! array_key_exists($department, $opcoesDepartamento))
+                        <option value="{{ $department }}">{{ $department }}</option>
+                    @endif
+                    @foreach ($opcoesDepartamento as $valor => $rotulo)
+                        <option value="{{ $valor }}">{{ $rotulo }}</option>
+                    @endforeach
+                </select>
+                @error('department') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- PRAZO DE AUTORIZAÇÃO / VALIDADE DE ACESSO -->
+            <div class="p-4 bg-surface-container-low rounded-xl border border-surface-container flex flex-col gap-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px] text-primary">event_upcoming</span>
+                        <div>
+                            <span class="text-xs font-bold text-on-surface block">Prazo de Autorização de Acesso</span>
+                            <span class="text-[11px] text-on-surface-variant block">Determine o período de vigência para a liberação da cancela</span>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Modo: Permanente vs Prazo Determinado -->
+                    <div class="inline-flex p-0.5 rounded-lg bg-surface-container border border-surface-container-highest self-start sm:self-auto">
+                        <button
+                            type="button"
+                            wire:click="setValidityType('indeterminado')"
+                            class="px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors cursor-pointer {{ $validityType === 'indeterminado' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}"
+                        >
+                            Permanente
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="setValidityType('data')"
+                            class="px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors cursor-pointer {{ $validityType === 'data' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}"
+                        >
+                            Prazo Determinado
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-on-surface" for="condutor-validity">
-                        Prazo de Autorização
-                    </label>
-                    <select
-                        wire:model="accessValidity"
-                        id="condutor-validity"
-                        class="w-full h-11 px-3 bg-surface-container-low border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer"
-                    >
-                        @if ($accessValidity !== '' && ! array_key_exists($accessValidity, $opcoesValidade))
-                            <option value="{{ $accessValidity }}">{{ $accessValidity }}</option>
-                        @endif
-                        @foreach ($opcoesValidade as $valor => $rotulo)
-                            <option value="{{ $valor }}">{{ $rotulo }}</option>
-                        @endforeach
-                    </select>
-                    @error('accessValidity') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
-                </div>
+                @if ($validityType === 'indeterminado')
+                    <div class="p-3 rounded-lg bg-surface-container-lowest border border-surface-container flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[18px] text-emerald-600">all_inclusive</span>
+                            <span>Autorização por prazo indeterminado (sem data de expiração cadastrada).</span>
+                        </div>
+                        <button
+                            type="button"
+                            wire:click="applyValidityPreset('semestre')"
+                            class="text-[11px] font-bold text-primary hover:underline cursor-pointer shrink-0"
+                        >
+                            Definir data limite
+                        </button>
+                    </div>
+                @else
+                    <div class="flex flex-col gap-3">
+                        <!-- Opções Pré-configuradas (Presets rápidos) -->
+                        <div>
+                            <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1.5">
+                                Opções Pré-configuradas
+                            </span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('30_dias')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer {{ $selectedPreset === '30_dias' ? 'bg-primary text-white border-primary' : 'bg-surface-container-lowest border-surface-container-highest text-on-surface hover:border-primary/50' }}"
+                                    title="30 dias a partir de hoje"
+                                >
+                                    30 Dias (1 Mês)
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('90_dias')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer {{ $selectedPreset === '90_dias' ? 'bg-primary text-white border-primary' : 'bg-surface-container-lowest border-surface-container-highest text-on-surface hover:border-primary/50' }}"
+                                    title="90 dias a partir de hoje"
+                                >
+                                    90 Dias (Trimestral)
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('semestre')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer {{ $selectedPreset === 'semestre' ? 'bg-primary text-white border-primary' : 'bg-surface-container-lowest border-surface-container-highest text-on-surface hover:border-primary/50' }}"
+                                    title="Término do semestre letivo vigente"
+                                >
+                                    Semestre Letivo Atual
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('1_ano')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer {{ $selectedPreset === '1_ano' ? 'bg-primary text-white border-primary' : 'bg-surface-container-lowest border-surface-container-highest text-on-surface hover:border-primary/50' }}"
+                                    title="1 ano a partir de hoje"
+                                >
+                                    1 Ano (12 Meses)
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('fim_ano')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer {{ $selectedPreset === 'fim_ano' ? 'bg-primary text-white border-primary' : 'bg-surface-container-lowest border-surface-container-highest text-on-surface hover:border-primary/50' }}"
+                                    title="31 de Dezembro do ano atual"
+                                >
+                                    Até o Fim do Ano
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="applyValidityPreset('indeterminado')"
+                                    class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-surface-container-highest text-on-surface-variant hover:text-on-surface hover:border-primary/50 bg-surface-container-lowest cursor-pointer"
+                                >
+                                    Sem Validade (Permanente)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Campo Direto de Data para o Admin Determinar -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end pt-1">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs font-bold text-on-surface" for="condutor-validity-date">
+                                    Data Limite da Autorização *
+                                </label>
+                                <div class="relative flex items-center">
+                                    <input
+                                        wire:model.live="validityDate"
+                                        id="condutor-validity-date"
+                                        type="date"
+                                        class="w-full h-11 px-3 bg-surface-container-lowest border border-surface-container-highest text-on-surface text-xs font-semibold rounded-xl focus:outline-none focus:border-primary cursor-pointer font-mono"
+                                    />
+                                </div>
+                                @error('validityDate') <span class="text-error text-[11px] font-semibold">{{ $message }}</span> @enderror
+                            </div>
+
+                            <!-- Resumo / Feedback da data -->
+                            <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container flex items-center gap-2 text-xs">
+                                @if (! empty($validityDate))
+                                    @php
+                                        try {
+                                            $parsedDate = \Carbon\Carbon::parse($validityDate);
+                                            $hoje = \Carbon\Carbon::today();
+                                            $dias = (int) $hoje->diffInDays($parsedDate, false);
+                                        } catch (\Throwable) {
+                                            $parsedDate = null;
+                                            $dias = null;
+                                        }
+                                    @endphp
+                                    @if ($parsedDate)
+                                        @if ($dias < 0)
+                                            <span class="material-symbols-outlined text-[18px] text-error shrink-0">error</span>
+                                            <span class="text-error font-semibold text-[11.5px]">
+                                                Atenção: Data expirada há {{ abs($dias) }} dia(s) ({{ $parsedDate->format('d/m/Y') }}).
+                                            </span>
+                                        @elseif ($dias === 0)
+                                            <span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span>
+                                            <span class="text-amber-700 font-semibold text-[11.5px]">
+                                                Vence hoje ({{ $parsedDate->format('d/m/Y') }}).
+                                            </span>
+                                        @else
+                                            <span class="material-symbols-outlined text-[18px] text-emerald-600 shrink-0">check_circle</span>
+                                            <span class="text-on-surface font-semibold text-[11.5px]">
+                                                Válido até <strong>{{ $parsedDate->format('d/m/Y') }}</strong> (restam {{ $dias }} dias).
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-on-surface-variant text-[11.5px]">Escolha uma data limite válida.</span>
+                                    @endif
+                                @else
+                                    <span class="text-on-surface-variant text-[11.5px]">Nenhuma data selecionada ainda.</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- VEÍCULOS VINCULADOS (O CONDUTOR PODE TER N CARROS) -->
