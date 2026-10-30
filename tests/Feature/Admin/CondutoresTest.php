@@ -4,6 +4,7 @@ use App\Livewire\Admin\Condutores;
 use App\Models\Condutor;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -90,4 +91,78 @@ it('permite editar, alternar status e excluir um condutor', function () {
         ->call('delete', $condutor->id);
 
     expect(Condutor::find($condutor->id))->toBeNull();
+});
+
+it('permite aplicar opcoes pre-configuradas e determinar data customizada de validade', function () {
+    $hoje = Carbon::today();
+    $dataEsperada30Dias = $hoje->copy()->addDays(30)->format('Y-m-d');
+
+    // 1. Testa aplicação de preset de 30 dias e depois altera para data personalizada
+    $test = Livewire::test(Condutores::class)
+        ->set('activeTab', 'prestadores')
+        ->call('openCreateModal')
+        ->assertSet('category', 'prestador')
+        ->call('applyValidityPreset', '30_dias')
+        ->assertSet('validityType', 'data')
+        ->assertSet('validityDate', $dataEsperada30Dias)
+        ->set('name', 'Prestador Infra')
+        ->set('cpf', '529.982.247-25')
+        ->set('code', 'PST-101')
+        ->set('department', 'Manutenção Predial / Infraestrutura')
+        ->set('validityDate', '2027-12-31')
+        ->set('vehicles.0.plate', 'PRE-9988')
+        ->set('vehicles.0.model', 'Fiorino')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $condutor = Condutor::where('cpf', '529.982.247-25')->firstOrFail();
+    expect($condutor->validade_acesso)->toBe('2027-12-31')
+        ->and($condutor->estaComAcessoExpirado())->toBeFalse()
+        ->and($condutor->statusValidade()['status'])->toBe('valido');
+
+    // 2. Altera para Permanente via Preset 'indeterminado'
+    Livewire::test(Condutores::class)
+        ->set('activeTab', 'prestadores')
+        ->call('openEditModal', $condutor->id)
+        ->assertSet('validityDate', '2027-12-31')
+        ->call('applyValidityPreset', 'indeterminado')
+        ->assertSet('validityType', 'indeterminado')
+        ->assertSet('validityDate', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($condutor->fresh()->validade_acesso)->toBe('Indeterminado')
+        ->and($condutor->fresh()->estaComAcessoExpirado())->toBeFalse()
+        ->and($condutor->fresh()->statusValidade()['status'])->toBe('permanente');
+});
+
+it('rejeita cadastro com prazo determinado quando a data limite nao for informada', function () {
+    Livewire::test(Condutores::class)
+        ->call('openCreateModal')
+        ->set('name', 'Professor Teste')
+        ->set('cpf', '529.982.247-25')
+        ->set('code', 'DOC-55443')
+        ->set('department', 'Tecnologia da Informação')
+        ->call('setValidityType', 'data')
+        ->set('validityDate', '')
+        ->set('vehicles.0.plate', 'TES-1234')
+        ->set('vehicles.0.model', 'Gol')
+        ->call('save')
+        ->assertHasErrors(['validityDate']);
+});
+
+it('identifica corretamente condutor com prazo de validade expirado', function () {
+    $ontem = Carbon::yesterday()->format('Y-m-d');
+
+    $condutor = Condutor::create([
+        'nome' => 'Carlos Vencido',
+        'cpf' => '529.982.247-25',
+        'tipo' => 'prestador',
+        'validade_acesso' => $ontem,
+        'ativo' => true,
+    ]);
+
+    expect($condutor->estaComAcessoExpirado())->toBeTrue()
+        ->and($condutor->statusValidade()['status'])->toBe('expirado')
+        ->and($condutor->statusValidade()['expirado'])->toBeTrue();
 });

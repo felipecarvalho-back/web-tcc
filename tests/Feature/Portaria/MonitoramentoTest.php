@@ -215,3 +215,48 @@ it('permite acionar o bloqueio de acesso diretamente de dentro do modal de verif
 
     expect($registro->fresh()->status)->toBe(StatusAcesso::Bloqueado);
 });
+
+it('bloqueia a liberacao de condutor com prazo de autorizacao expirado', function () {
+    $ontem = Carbon::yesterday()->format('Y-m-d');
+
+    $condutorExpirado = Condutor::create([
+        'nome' => 'Professor Contrato Vencido',
+        'cpf' => '654.321.987-00',
+        'tipo' => 'professor',
+        'validade_acesso' => $ontem,
+        'ativo' => true,
+    ]);
+
+    CondutorProfessor::create([
+        'condutor_id' => $condutorExpirado->id,
+        'codigo_acesso' => 'DOC-00001',
+        'departamento' => 'Engenharia',
+    ]);
+
+    $veiculo = Veiculo::create([
+        'condutor_id' => $condutorExpirado->id,
+        'placa' => 'VNC-9999',
+        'modelo' => 'Focus',
+        'cor' => 'Branco',
+        'ativo' => true,
+    ]);
+
+    $registro = RegistroAcesso::create([
+        'veiculo_id' => $veiculo->id,
+        'condutor_id' => $condutorExpirado->id,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+        'placa_registro' => 'VNC-9999',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now(),
+        'status' => StatusAcesso::Pendente,
+    ]);
+
+    Livewire::test(Monitoramento::class)
+        ->call('openDriverConfirmationModal', $registro->id)
+        ->assertSet('selectedRecord.is_driver_expired', true)
+        ->set('confirmDriverCode', 'DOC-00001')
+        ->call('confirmDriver')
+        ->assertHasErrors(['confirmDriverCode']);
+
+    expect($registro->fresh()->status)->toBe(StatusAcesso::Pendente);
+});

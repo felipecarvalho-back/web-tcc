@@ -244,6 +244,8 @@ class RegistroAcesso extends Model
             'image_url' => $this->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
             'is_registered' => (bool) $this->veiculo_id,
             'is_visitor' => $this->condutor?->tipo === 'visitante',
+            'driver_validity' => $this->condutor?->formatarValidadeParaExibicao() ?? 'Permanente',
+            'is_driver_expired' => $this->condutor?->estaComAcessoExpirado() ?? false,
         ];
     }
 

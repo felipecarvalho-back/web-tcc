@@ -168,7 +168,7 @@ class Monitoramento extends Component
             ])
             ->with([
                 'operador:id,nome',
-                'condutor:id,nome,tipo',
+                'condutor:id,nome,tipo,validade_acesso',
                 'condutor.professor:condutor_id,codigo_acesso,departamento',
                 'condutor.funcionario:condutor_id,codigo_acesso,setor',
                 'condutor.prestador:condutor_id,codigo_acesso,empresa',
@@ -224,6 +224,15 @@ class Monitoramento extends Component
         $passageiro = Condutor::buscarAtivoPorCodigo($code, ['professor', 'funcionario']);
         if (! $passageiro) {
             $this->addError('newPassengerCode', 'Código de carona inválido. Informe o código de um Professor ou Funcionário ativo.');
+
+            return;
+        }
+
+        if ($passageiro->estaComAcessoExpirado()) {
+            $this->addError(
+                'newPassengerCode',
+                'A autorização deste carona expirou em '.$passageiro->dataValidade()?->format('d/m/Y').'.'
+            );
 
             return;
         }
@@ -330,6 +339,15 @@ class Monitoramento extends Component
                 return;
             }
 
+            if ($condutor->estaComAcessoExpirado()) {
+                $this->addError(
+                    'driverAccessCode',
+                    'A autorização deste condutor expirou em '.$condutor->dataValidade()?->format('d/m/Y').'. Acesso bloqueado.'
+                );
+
+                return;
+            }
+
             DB::transaction(function () use ($registro, $condutor, $placaFormatada, $codigoFormatado): void {
                 if ($placaFormatada !== '' && $placaFormatada !== $registro->placa_registro) {
                     $registro->placa_corrigida = substr($placaFormatada, 0, 10);
@@ -361,6 +379,15 @@ class Monitoramento extends Component
             $condutor = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['professor', 'funcionario', 'prestador']);
             if (! $condutor) {
                 $this->addError('driverAccessCode', 'Código de acesso inválido ou condutor inativo no sistema.');
+
+                return;
+            }
+
+            if ($condutor->estaComAcessoExpirado()) {
+                $this->addError(
+                    'driverAccessCode',
+                    'A autorização deste condutor expirou em '.$condutor->dataValidade()?->format('d/m/Y').'. Acesso bloqueado.'
+                );
 
                 return;
             }
@@ -417,7 +444,7 @@ class Monitoramento extends Component
     {
         $registro = RegistroAcesso::with([
             'operador:id,nome',
-            'condutor:id,nome,tipo',
+            'condutor:id,nome,tipo,validade_acesso',
             'condutor.professor:condutor_id,codigo_acesso,departamento',
             'condutor.funcionario:condutor_id,codigo_acesso,setor',
             'condutor.prestador:condutor_id,codigo_acesso,empresa',
@@ -441,6 +468,13 @@ class Monitoramento extends Component
         }
 
         $this->selectedRecord = $registro->toMonitoringArray();
+
+        $condutorVinculado = $registro->condutor ?: $veiculo?->condutor ?? null;
+        if ($condutorVinculado) {
+            $this->selectedRecord['driver_validity'] = $condutorVinculado->formatarValidadeParaExibicao();
+            $this->selectedRecord['is_driver_expired'] = $condutorVinculado->estaComAcessoExpirado();
+        }
+
         $this->confirmDriverCode = '';
         $this->passengers = [];
         $this->newPassengerCode = '';
@@ -487,6 +521,15 @@ class Monitoramento extends Component
         $condutor = Condutor::buscarAtivoPorCodigo($codigoFormatado, ['professor', 'funcionario', 'prestador']);
         if (! $condutor) {
             $this->addError('confirmDriverCode', 'Código de acesso inválido ou condutor inativo no sistema.');
+
+            return;
+        }
+
+        if ($condutor->estaComAcessoExpirado()) {
+            $this->addError(
+                'confirmDriverCode',
+                'A autorização deste condutor expirou em '.$condutor->dataValidade()?->format('d/m/Y').'. Acesso bloqueado pela guarita.'
+            );
 
             return;
         }
@@ -590,7 +633,7 @@ class Monitoramento extends Component
      */
     public function openBlockModal(int $id): void
     {
-        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo'])->find($id);
+        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo,validade_acesso'])->find($id);
         if (! $registro) {
             return;
         }

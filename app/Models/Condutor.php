@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Condutor extends Model
 {
@@ -153,5 +154,114 @@ class Condutor extends Model
                     ->orWhereHas('prestador', fn (Builder $prq) => $prq->whereIn('codigo_acesso', $candidatos));
             })
             ->first();
+    }
+
+    /**
+     * Retorna a data limite de validade de acesso como Carbon (se houver prazo determinado).
+     */
+    public function dataValidade(): ?Carbon
+    {
+        if (empty($this->validade_acesso) || strcasecmp($this->validade_acesso, 'Indeterminado') === 0) {
+            return null;
+        }
+
+        try {
+            $valor = trim($this->validade_acesso);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}/', $valor)) {
+                return Carbon::parse($valor)->endOfDay();
+            }
+            if (preg_match('/^\d{2}\/\d{2}\/\d{4}/', $valor)) {
+                return Carbon::createFromFormat('d/m/Y', $valor)->endOfDay();
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Informa se o acesso do condutor está com o prazo expirado/vencido.
+     */
+    public function estaComAcessoExpirado(): bool
+    {
+        $validade = $this->dataValidade();
+        if (! $validade) {
+            return false;
+        }
+
+        return Carbon::now()->greaterThan($validade);
+    }
+
+    /**
+     * Retorna array detalhado do status de validade para exibição no front-end.
+     *
+     * @return array{status: string, label: string, expirado: bool, dias_restantes: int|null, data_formatada: string}
+     */
+    public function statusValidade(): array
+    {
+        if (empty($this->validade_acesso) || strcasecmp($this->validade_acesso, 'Indeterminado') === 0) {
+            return [
+                'status' => 'permanente',
+                'label' => 'Permanente',
+                'expirado' => false,
+                'dias_restantes' => null,
+                'data_formatada' => 'Indeterminado',
+            ];
+        }
+
+        $data = $this->dataValidade();
+        if (! $data) {
+            return [
+                'status' => 'personalizado',
+                'label' => $this->validade_acesso,
+                'expirado' => false,
+                'dias_restantes' => null,
+                'data_formatada' => $this->validade_acesso,
+            ];
+        }
+
+        $hoje = Carbon::today();
+        $fimDia = $data->copy()->endOfDay();
+        $expirado = Carbon::now()->greaterThan($fimDia);
+        $diasRestantes = (int) $hoje->diffInDays($data, false);
+
+        if ($expirado) {
+            return [
+                'status' => 'expirado',
+                'label' => 'Expirado em '.$data->format('d/m/Y'),
+                'expirado' => true,
+                'dias_restantes' => $diasRestantes,
+                'data_formatada' => $data->format('d/m/Y'),
+            ];
+        }
+
+        if ($diasRestantes <= 7) {
+            $avisoDias = $diasRestantes <= 0 ? 'Vence Hoje' : "Vence em {$diasRestantes}d";
+
+            return [
+                'status' => 'alerta',
+                'label' => "{$avisoDias} ({$data->format('d/m/Y')})",
+                'expirado' => false,
+                'dias_restantes' => $diasRestantes,
+                'data_formatada' => $data->format('d/m/Y'),
+            ];
+        }
+
+        return [
+            'status' => 'valido',
+            'label' => 'Até '.$data->format('d/m/Y'),
+            'expirado' => false,
+            'dias_restantes' => $diasRestantes,
+            'data_formatada' => $data->format('d/m/Y'),
+        ];
+    }
+
+    /**
+     * Formata a validade para exibição simples.
+     */
+    public function formatarValidadeParaExibicao(): string
+    {
+        return $this->statusValidade()['label'];
     }
 }

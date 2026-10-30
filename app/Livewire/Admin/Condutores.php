@@ -13,6 +13,7 @@ use App\Rules\CpfValido;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -52,6 +53,12 @@ class Condutores extends Component
 
     public string $accessValidity = 'Indeterminado';
 
+    public string $validityType = 'indeterminado';
+
+    public string $validityDate = '';
+
+    public string $selectedPreset = 'indeterminado';
+
     public string $status = 'ativo';
 
     /**
@@ -85,7 +92,78 @@ class Condutores extends Component
     {
         if ($this->editingId === null) {
             $this->department = $this->defaultDepartmentForCategory($this->category);
-            $this->accessValidity = $this->category === 'prestador' ? 'Semestre Atual' : 'Indeterminado';
+            if ($this->category === 'prestador') {
+                $this->applyValidityPreset('semestre');
+            } else {
+                $this->applyValidityPreset('indeterminado');
+            }
+        }
+    }
+
+    /**
+     * Aplica uma opção pré-configurada de prazo de autorização.
+     */
+    public function applyValidityPreset(string $preset): void
+    {
+        $this->selectedPreset = $preset;
+        $hoje = Carbon::today();
+
+        if ($preset === 'indeterminado') {
+            $this->validityType = 'indeterminado';
+            $this->validityDate = '';
+            $this->accessValidity = 'Indeterminado';
+
+            return;
+        }
+
+        $this->validityType = 'data';
+
+        $dataCalculada = match ($preset) {
+            '30_dias' => $hoje->copy()->addDays(30),
+            '90_dias' => $hoje->copy()->addDays(90),
+            'semestre' => $hoje->month <= 6
+                ? Carbon::create($hoje->year, 6, 30)
+                : Carbon::create($hoje->year, 12, 31),
+            '1_ano' => $hoje->copy()->addYear(),
+            'fim_ano' => Carbon::create($hoje->year, 12, 31),
+            default => null,
+        };
+
+        if ($dataCalculada) {
+            $this->validityDate = $dataCalculada->format('Y-m-d');
+            $this->accessValidity = $this->validityDate;
+        }
+    }
+
+    /**
+     * Alterna o modo de validade entre Indeterminado e Data determinada.
+     */
+    public function setValidityType(string $type): void
+    {
+        $this->validityType = $type;
+
+        if ($type === 'indeterminado') {
+            $this->applyValidityPreset('indeterminado');
+        } else {
+            if (empty($this->validityDate)) {
+                $this->applyValidityPreset('semestre');
+            } else {
+                $this->accessValidity = $this->validityDate;
+                $this->selectedPreset = 'personalizado';
+            }
+        }
+    }
+
+    /**
+     * Atualização do campo de data manual de validade.
+     */
+    public function updatedValidityDate(string $value): void
+    {
+        $limpo = trim($value);
+        if ($limpo !== '') {
+            $this->validityType = 'data';
+            $this->accessValidity = $limpo;
+            $this->selectedPreset = 'personalizado';
         }
     }
 
@@ -118,7 +196,12 @@ class Condutores extends Component
         };
 
         $this->department = $this->defaultDepartmentForCategory($this->category);
-        $this->accessValidity = $this->category === 'prestador' ? 'Semestre Atual' : 'Indeterminado';
+
+        if ($this->category === 'prestador') {
+            $this->applyValidityPreset('semestre');
+        } else {
+            $this->applyValidityPreset('indeterminado');
+        }
 
         $this->showFormModal = true;
     }
@@ -138,8 +221,35 @@ class Condutores extends Component
         $this->name = $condutor->nome;
         $this->cpf = $condutor->cpf;
         $this->category = $condutor->tipo;
-        $this->accessValidity = $condutor->validade_acesso ?? 'Indeterminado';
         $this->status = $condutor->ativo ? 'ativo' : 'inativo';
+
+        $rawValidade = $condutor->validade_acesso ?? 'Indeterminado';
+        $this->accessValidity = $rawValidade;
+
+        if (empty($rawValidade) || strcasecmp($rawValidade, 'Indeterminado') === 0) {
+            $this->validityType = 'indeterminado';
+            $this->validityDate = '';
+            $this->selectedPreset = 'indeterminado';
+        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawValidade)) {
+            $this->validityType = 'data';
+            $this->validityDate = $rawValidade;
+            $this->selectedPreset = 'personalizado';
+        } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawValidade)) {
+            $this->validityType = 'data';
+            $this->validityDate = Carbon::createFromFormat('d/m/Y', $rawValidade)->format('Y-m-d');
+            $this->selectedPreset = 'personalizado';
+        } else {
+            $this->validityType = 'data';
+            $preset = match (strtolower(trim($rawValidade))) {
+                'semestre atual' => 'semestre',
+                '1 ano' => '1_ano',
+                '90 dias' => '90_dias',
+                '30 dias' => '30_dias',
+                '7 dias' => '30_dias',
+                default => 'semestre',
+            };
+            $this->applyValidityPreset($preset);
+        }
 
         $especializacao = match ($condutor->tipo) {
             'professor' => $condutor->professor,
@@ -229,6 +339,11 @@ class Condutores extends Component
                 'string',
                 'max:100',
             ],
+            'validityDate' => [
+                Rule::requiredIf($this->validityType === 'data'),
+                'nullable',
+                'date_format:Y-m-d',
+            ],
             'accessValidity' => ['nullable', 'string', 'max:50'],
             'status' => ['required', Rule::in(['ativo', 'inativo'])],
             'vehicles' => ['required', 'array', 'min:1'],
@@ -265,6 +380,8 @@ class Condutores extends Component
             'code.required' => 'O código de acesso/matrícula é obrigatório.',
             'code.unique' => 'Este código já está cadastrado para essa categoria.',
             'department.required' => 'Informe a empresa do prestador de serviço.',
+            'validityDate.required' => 'Informe a data limite para a autorização do condutor.',
+            'validityDate.date_format' => 'Informe uma data de validade válida no formato AAAA-MM-DD.',
             'vehicles.*.plate.required' => 'Informe a placa do veículo.',
             'vehicles.*.plate.min' => 'A placa deve ter pelo menos 7 caracteres.',
             'vehicles.*.plate.distinct' => 'Você informou placas repetidas para o mesmo condutor.',
@@ -275,6 +392,10 @@ class Condutores extends Component
         $veiculosValidos = collect($this->vehicles)
             ->filter(fn (array $vehicle): bool => trim($vehicle['plate'] ?? '') !== '')
             ->values();
+
+        $this->accessValidity = $this->validityType === 'data' && ! empty($this->validityDate)
+            ? $this->validityDate
+            : 'Indeterminado';
 
         $wasEditing = $this->editingId !== null;
 
@@ -426,6 +547,9 @@ class Condutores extends Component
         $this->code = '';
         $this->department = 'DSM - Coordenação DSM';
         $this->accessValidity = 'Indeterminado';
+        $this->validityType = 'indeterminado';
+        $this->validityDate = '';
+        $this->selectedPreset = 'indeterminado';
         $this->status = 'ativo';
 
         $this->vehicles = [
@@ -518,6 +642,8 @@ class Condutores extends Component
                 default => '',
             };
 
+            $statusValidade = $condutor->statusValidade();
+
             return [
                 'id' => $condutor->id,
                 'name' => $condutor->nome,
@@ -534,7 +660,10 @@ class Condutores extends Component
                         'color' => $vehicle->cor ?? '',
                     ];
                 })->all(),
-                'validity' => $condutor->validade_acesso ?? 'Indeterminado',
+                'validity' => $statusValidade['label'],
+                'validity_status' => $statusValidade['status'],
+                'is_expired' => $statusValidade['expirado'],
+                'validity_date' => $statusValidade['data_formatada'],
                 'status' => $condutor->ativo ? 'ativo' : 'inativo',
             ];
         });

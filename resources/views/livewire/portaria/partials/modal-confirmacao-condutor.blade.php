@@ -10,9 +10,17 @@
         <div class="p-4 rounded-xl bg-surface-container-low border border-surface-container flex flex-col gap-3">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Veículo Identificado no Banco</span>
-                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    Cadastro Ativo
-                </span>
+                <div class="flex items-center gap-1.5">
+                    @if ($selectedRecord['is_driver_expired'] ?? false)
+                        <span class="px-2 py-0.5 rounded-full bg-error-container text-error text-[10px] font-bold">
+                            Autorização Vencida
+                        </span>
+                    @else
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            Cadastro Ativo • {{ $selectedRecord['driver_validity'] ?? 'Permanente' }}
+                        </span>
+                    @endif
+                </div>
             </div>
 
             <div class="flex items-center justify-between gap-3">
@@ -23,6 +31,18 @@
                 </div>
             </div>
         </div>
+
+        @if ($selectedRecord['is_driver_expired'] ?? false)
+            <div class="p-3.5 rounded-xl bg-error-container text-error text-xs flex items-start gap-2.5">
+                <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5">event_busy</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-error">Atenção: Prazo de Autorização Vencido!</span>
+                    <p class="text-[11.5px] leading-relaxed text-error/90">
+                        A autorização deste condutor venceu em <strong>{{ $selectedRecord['driver_validity'] ?? '' }}</strong>. O acesso pela cancela requer renovação cadastral junto à administração.
+                    </p>
+                </div>
+            </div>
+        @endif
 
         <!-- Orientações -->
         <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-2.5">
