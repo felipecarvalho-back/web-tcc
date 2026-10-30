@@ -131,6 +131,7 @@ class RegistroAcesso extends Model
             'pendente' => $query->where('status', StatusAcesso::Pendente)->whereNull('data_hora_saida'),
             'autorizado' => $query->whereIn('status', StatusAcesso::authorizedValues())->whereNull('data_hora_saida'),
             'nao_cadastrado' => $query->whereIn('status', StatusAcesso::unregisteredValues())->whereNull('data_hora_saida'),
+            'bloqueado' => $query->where('status', StatusAcesso::Bloqueado)->whereNull('data_hora_saida'),
             'saida' => $query->where(function (Builder $q) {
                 $q->where('status', StatusAcesso::Finalizado)->orWhereNotNull('data_hora_saida');
             }),

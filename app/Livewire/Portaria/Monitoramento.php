@@ -89,12 +89,23 @@ class Monitoramento extends Component
 
     public string $newPassengerCode = '';
 
-    // Indicadores do topo da tela
+    // Indicadores operacionais do topo da tela
     public int $totalPassages = 0;
 
     public int $automaticPassages = 0;
 
     public int $manualCorrections = 0;
+
+    public int $pendingPassages = 0;
+
+    public int $blockedPassages = 0;
+
+    // Estado do Modal de Bloqueio de Acesso
+    public bool $showBlockModal = false;
+
+    public string $blockReason = 'Condutor não possui código de acesso';
+
+    public string $blockCustomJustification = '';
 
     public function updatedVerificationMode(string $mode): void
     {
@@ -105,7 +116,7 @@ class Monitoramento extends Component
     }
 
     /**
-     * Atualiza os 3 indicadores do topo em uma única query SQL otimizada.
+     * Atualiza os indicadores operacionais do topo em uma única query SQL otimizada.
      */
     private function loadMetrics(): void
     {
@@ -114,14 +125,24 @@ class Monitoramento extends Component
             ->filtrarData('hoje')
             ->selectRaw('
                 COUNT(*) as total,
-                COALESCE(SUM(CASE WHEN placa_registro != ? AND placa_corrigida IS NULL THEN 1 ELSE 0 END), 0) as automaticas,
-                COALESCE(SUM(CASE WHEN placa_corrigida IS NOT NULL THEN 1 ELSE 0 END), 0) as manuais
-            ', [RegistroAcesso::PLACA_NAO_IDENTIFICADA])
+                COALESCE(SUM(CASE WHEN placa_registro != ? AND placa_corrigida IS NULL AND status IN (?, ?) THEN 1 ELSE 0 END), 0) as automaticas,
+                COALESCE(SUM(CASE WHEN placa_corrigida IS NOT NULL THEN 1 ELSE 0 END), 0) as manuais,
+                COALESCE(SUM(CASE WHEN status = ? AND data_hora_saida IS NULL THEN 1 ELSE 0 END), 0) as pendentes,
+                COALESCE(SUM(CASE WHEN status = ? AND data_hora_saida IS NULL THEN 1 ELSE 0 END), 0) as bloqueados
+            ', [
+                RegistroAcesso::PLACA_NAO_IDENTIFICADA,
+                StatusAcesso::Autorizado->value,
+                StatusAcesso::EmPatio->value,
+                StatusAcesso::Pendente->value,
+                StatusAcesso::Bloqueado->value,
+            ])
             ->first();
 
         $this->totalPassages = (int) ($metricas->total ?? 0);
         $this->automaticPassages = (int) ($metricas->automaticas ?? 0);
         $this->manualCorrections = (int) ($metricas->manuais ?? 0);
+        $this->pendingPassages = (int) ($metricas->pendentes ?? 0);
+        $this->blockedPassages = (int) ($metricas->bloqueados ?? 0);
     }
 
     /**
@@ -562,6 +583,89 @@ class Monitoramento extends Component
             unset($this->filteredRecords);
             $this->triggerToast("Saída registrada para o veículo {$placa}!", 'info');
         }
+    }
+
+    /**
+     * Abre o modal de bloqueio de acesso para veículos não cadastrados / sem código.
+     */
+    public function openBlockModal(int $id): void
+    {
+        $registro = RegistroAcesso::with(['operador:id,nome', 'condutor:id,nome,tipo'])->find($id);
+        if (! $registro) {
+            return;
+        }
+
+        $this->resetValidation();
+        $this->selectedRecord = $registro->toMonitoringArray();
+        $this->showVerificationModal = false;
+        $this->showDriverConfirmationModal = false;
+        $this->blockReason = 'Condutor não possui código de acesso';
+        $this->blockCustomJustification = '';
+        $this->showBlockModal = true;
+    }
+
+    /**
+     * Fecha o modal de bloqueio de acesso.
+     */
+    public function closeBlockModal(): void
+    {
+        $this->resetValidation();
+        $this->showBlockModal = false;
+        $this->selectedRecord = null;
+        $this->blockReason = 'Condutor não possui código de acesso';
+        $this->blockCustomJustification = '';
+    }
+
+    /**
+     * Confirma o bloqueio do veículo na guarita e atualiza o status para Bloqueado.
+     */
+    public function confirmBlock(): void
+    {
+        if (! $this->selectedRecord) {
+            return;
+        }
+
+        $targetId = $this->selectedRecord['id'];
+        $registro = RegistroAcesso::find($targetId);
+        if (! $registro) {
+            return;
+        }
+
+        $motivo = trim($this->blockCustomJustification) !== ''
+            ? trim($this->blockCustomJustification)
+            : $this->blockReason;
+
+        DB::transaction(function () use ($registro, $motivo): void {
+            $registro->status = StatusAcesso::Bloqueado;
+            $registro->justificativa = "Acesso bloqueado na guarita: {$motivo}";
+            $registro->operador_id = Auth::id() ?: $registro->operador_id;
+            $registro->save();
+        });
+
+        $this->closeBlockModal();
+        unset($this->filteredRecords);
+        $this->triggerToast('Acesso bloqueado com sucesso na guarita.', 'warning');
+    }
+
+    /**
+     * Reverte o bloqueio de um registro para permitir reavaliação pela guarita.
+     */
+    public function unblockRecord(int $id): void
+    {
+        $registro = RegistroAcesso::find($id);
+        if (! $registro) {
+            return;
+        }
+
+        DB::transaction(function () use ($registro): void {
+            $registro->status = StatusAcesso::NaoCadastrado;
+            $registro->justificativa = 'Bloqueio revertido pelo operador para reavaliação';
+            $registro->operador_id = Auth::id() ?: $registro->operador_id;
+            $registro->save();
+        });
+
+        unset($this->filteredRecords);
+        $this->triggerToast('Registro reaberto para avaliação da guarita.', 'info');
     }
 
     public function render()

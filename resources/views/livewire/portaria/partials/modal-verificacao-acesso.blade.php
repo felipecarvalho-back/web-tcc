@@ -183,22 +183,36 @@
         @include('livewire.portaria.partials.secao-caronas')
 
         <x-slot:footer>
-            <button
-                type="button"
-                wire:click="closeVerificationModal"
-                class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors cursor-pointer"
-            >
-                Cancelar
-            </button>
-            <button
-                type="button"
-                wire:click="confirmVerification"
-                wire:loading.attr="disabled"
-                class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-[18px]">garage</span>
-                <span>Validar e Liberar Cancela</span>
-            </button>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full">
+                <button
+                    type="button"
+                    wire:click="openBlockModal({{ $selectedRecord['id'] }})"
+                    class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Se o condutor não possui código e não tem autorização de entrada"
+                >
+                    <span class="material-symbols-outlined text-[16px]">block</span>
+                    <span>Sem Código? Bloquear Acesso</span>
+                </button>
+
+                <div class="flex items-center gap-2 justify-end">
+                    <button
+                        type="button"
+                        wire:click="closeVerificationModal"
+                        class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors cursor-pointer"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="confirmVerification"
+                        wire:loading.attr="disabled"
+                        class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">garage</span>
+                        <span>Validar e Liberar Cancela</span>
+                    </button>
+                </div>
+            </div>
         </x-slot:footer>
     </x-modal>
 @endif
