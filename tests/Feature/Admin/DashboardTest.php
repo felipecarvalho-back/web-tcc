@@ -84,3 +84,31 @@ test('administrador acessa o dashboard e visualiza indicadores reais do banco de
         ->assertSet('periodFilter', 'mes')
         ->assertSee('HEL-2026');
 });
+
+test('dashboard nao conta passageiros nem registros bloqueados como veiculos em patio', function () {
+    RegistroAcesso::query()->create([
+        'placa_registro' => 'BLK-0001',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now()->setTime(9, 0, 0),
+        'data_hora_saida' => null,
+        'operador_id' => $this->operador->id,
+        'status' => StatusAcesso::Bloqueado,
+        'tipo_ocupante' => TipoOcupante::Condutor,
+    ]);
+
+    RegistroAcesso::query()->create([
+        'placa_registro' => 'HEL-2026',
+        'cancela' => 'Cancela 01 (Principal)',
+        'data_hora_entrada' => Carbon::now()->setTime(8, 15, 0),
+        'data_hora_saida' => null,
+        'operador_id' => $this->operador->id,
+        'status' => StatusAcesso::Autorizado,
+        'tipo_ocupante' => TipoOcupante::Passageiro,
+    ]);
+
+    $component = Livewire::actingAs($this->admin)->test(Dashboard::class);
+    $metrics = $component->instance()->dashboardMetrics;
+
+    expect($metrics['in_campus_count'])->toBe(1)
+        ->and($metrics['entries_count'])->toBe(2);
+});
