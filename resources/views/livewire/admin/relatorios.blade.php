@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" x-data x-on:trigger-report-print.window="$nextTick(() => window.print())">
     <!-- ÁREA INTERATIVA WEB (OCULTA NA IMPRESSÃO) -->
     <div class="flex flex-col gap-6 no-print">
         <!-- CABEÇALHO DE RELATÓRIOS -->
@@ -45,8 +45,9 @@
 
                 <button
                     type="button"
-                    onclick="window.print()"
-                    class="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                    wire:click="preparePrint"
+                    wire:loading.attr="disabled"
+                    class="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
                 >
                     <span class="material-symbols-outlined text-[19px]">picture_as_pdf</span>
                     <span>Gerar Relatório em PDF</span>

@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\StatusAcesso;
+use App\Enums\TipoCondutor;
 use App\Enums\TipoOcupante;
 use App\Models\RegistroAcesso;
 use App\Models\Usuario;
@@ -47,6 +48,8 @@ class Relatorios extends Component
     public string $driverSearch = '';
 
     public bool $showPreviewModal = false;
+
+    public bool $printReady = false;
 
     public function mount(): void
     {
@@ -297,7 +300,7 @@ class Relatorios extends Component
         $diaInfo = $diasMap[$diaSemanaIngles] ?? ['key' => 'segunda', 'label' => 'Segunda-feira'];
 
         $condutor = $reg->condutor;
-        $tipo = $condutor?->tipo ?? 'visitante';
+        $tipo = $condutor?->tipo?->value ?? TipoCondutor::Visitante->value;
         $temPlacaCorrigida = ! empty($reg->placa_corrigida);
 
         $temSaida = $saida !== null || $reg->status === StatusAcesso::Finalizado;
@@ -415,14 +418,27 @@ class Relatorios extends Component
     }
 
     /**
-     * Exporta os registros filtrados para download direto em planilha CSV/Excel.
+     * Sanitiza um valor textual para prevenir CSV Formula Injection no Excel/LibreOffice.
+     */
+    private function sanitizeCsvCell(mixed $value): string
+    {
+        $text = (string) ($value ?? '');
+
+        if ($text !== '' && preg_match('/^[=+\-@\t\r]/', $text) === 1) {
+            return "'".$text;
+        }
+
+        return $text;
+    }
+
+    /**
+     * Exporta todos os registros filtrados em streaming para download direto em planilha CSV/Excel.
      */
     public function exportCsv(): StreamedResponse
     {
         $filename = 'relatorio_acessos_sentinela_'.Carbon::now()->format('Ymd_His').'.csv';
-        $records = $this->filteredData;
 
-        return response()->streamDownload(function () use ($records): void {
+        return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
             if ($handle === false) {
                 return;
@@ -446,20 +462,23 @@ class Relatorios extends Component
                 'Permanência',
             ], ';', '"', '\\');
 
-            foreach ($records as $item) {
+            foreach ($this->buildQuery()->lazy(200) as $registro) {
+                /** @var RegistroAcesso $registro */
+                $item = $this->formatRecord($registro);
+
                 fputcsv($handle, [
-                    $item['id'] ?? '',
-                    $item['date_only'] ?? '',
-                    $item['entry_hour'] ?? '',
-                    $item['exit_hour'] ?? 'Em Pátio',
-                    $item['day_of_week_label'] ?? '',
-                    $item['plate'] ?? '',
-                    $item['driver'] ?? '',
-                    $item['category_label'] ?? '',
-                    $item['event_label'] ?? '',
-                    $item['gate'] ?? '',
-                    $item['operator'] ?? '',
-                    $item['permanencia'] ?? '',
+                    $this->sanitizeCsvCell($item['id'] ?? ''),
+                    $this->sanitizeCsvCell($item['date_only'] ?? ''),
+                    $this->sanitizeCsvCell($item['entry_hour'] ?? ''),
+                    $this->sanitizeCsvCell($item['exit_hour'] ?? 'Em Pátio'),
+                    $this->sanitizeCsvCell($item['day_of_week_label'] ?? ''),
+                    $this->sanitizeCsvCell($item['plate'] ?? ''),
+                    $this->sanitizeCsvCell($item['driver'] ?? ''),
+                    $this->sanitizeCsvCell($item['category_label'] ?? ''),
+                    $this->sanitizeCsvCell($item['event_label'] ?? ''),
+                    $this->sanitizeCsvCell($item['gate'] ?? ''),
+                    $this->sanitizeCsvCell($item['operator'] ?? ''),
+                    $this->sanitizeCsvCell($item['permanencia'] ?? ''),
                 ], ';', '"', '\\');
             }
 
@@ -480,11 +499,17 @@ class Relatorios extends Component
         $this->showPreviewModal = false;
     }
 
+    public function preparePrint(): void
+    {
+        $this->printReady = true;
+        $this->dispatch('trigger-report-print');
+    }
+
     public function render(): View
     {
         return view('livewire.admin.relatorios', [
             'records' => $this->paginatedRecords,
-            'filteredData' => $this->filteredData,
+            'filteredData' => ($this->showPreviewModal || $this->printReady) ? $this->filteredData : [],
             'reportStats' => $this->reportStats,
             'operators' => $this->operators,
         ]);
