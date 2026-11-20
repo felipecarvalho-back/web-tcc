@@ -35,7 +35,7 @@ class HistoricoFotoResource extends JsonResource
             'placa_identificada' => $placaIdentificada,
             'condutor' => $condutor?->nome ?? 'Condutor não identificado',
             'condutor_id' => $condutor?->id,
-            'condutor_tipo' => $condutor?->tipo,
+            'condutor_tipo' => $condutor?->tipo?->value ?? $condutor?->tipo,
             'status' => $this->status?->value ?? $this->status,
         ];
     }

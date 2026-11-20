@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TipoCondutor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +32,8 @@ class Condutor extends Model
     {
         return [
             'ativo' => 'boolean',
+            'tipo' => TipoCondutor::class,
+            'validade_acesso' => 'date',
         ];
     }
 
@@ -118,9 +121,9 @@ class Condutor extends Model
     public function codigoAcesso(): ?string
     {
         $codigo = match ($this->tipo) {
-            'professor' => $this->professor?->codigo_acesso,
-            'funcionario' => $this->funcionario?->codigo_acesso,
-            'prestador' => $this->prestador?->codigo_acesso,
+            TipoCondutor::Professor => $this->professor?->codigo_acesso,
+            TipoCondutor::Funcionario => $this->funcionario?->codigo_acesso,
+            TipoCondutor::Prestador => $this->prestador?->codigo_acesso,
             default => null,
         };
 
@@ -161,23 +164,11 @@ class Condutor extends Model
      */
     public function dataValidade(): ?Carbon
     {
-        if (empty($this->validade_acesso) || strcasecmp($this->validade_acesso, 'Indeterminado') === 0) {
+        if ($this->validade_acesso === null) {
             return null;
         }
 
-        try {
-            $valor = trim($this->validade_acesso);
-            if (preg_match('/^\d{4}-\d{2}-\d{2}/', $valor)) {
-                return Carbon::parse($valor)->endOfDay();
-            }
-            if (preg_match('/^\d{2}\/\d{2}\/\d{4}/', $valor)) {
-                return Carbon::createFromFormat('d/m/Y', $valor)->endOfDay();
-            }
-        } catch (\Throwable) {
-            return null;
-        }
-
-        return null;
+        return Carbon::instance($this->validade_acesso)->endOfDay();
     }
 
     /**
@@ -200,24 +191,14 @@ class Condutor extends Model
      */
     public function statusValidade(): array
     {
-        if (empty($this->validade_acesso) || strcasecmp($this->validade_acesso, 'Indeterminado') === 0) {
+        $data = $this->dataValidade();
+        if (! $data) {
             return [
                 'status' => 'permanente',
                 'label' => 'Permanente',
                 'expirado' => false,
                 'dias_restantes' => null,
                 'data_formatada' => 'Indeterminado',
-            ];
-        }
-
-        $data = $this->dataValidade();
-        if (! $data) {
-            return [
-                'status' => 'personalizado',
-                'label' => $this->validade_acesso,
-                'expirado' => false,
-                'dias_restantes' => null,
-                'data_formatada' => $this->validade_acesso,
             ];
         }
 
