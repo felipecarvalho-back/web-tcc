@@ -66,13 +66,13 @@ test('salva localmente quando variaveis de ambiente do cloudinary nao estao conf
         ]);
 
     $nome = $response->json('nome');
-    Storage::disk('public')->assertExists('perfis/'.$nome);
+    Storage::disk('public')->assertExists('placas/'.$nome);
 
     $this->assertDatabaseHas('registros_acesso', [
         'id' => $response->json('registro_id'),
         'placa_registro' => 'BRA-2E19',
         'operador_id' => $this->usuario->id,
-        'status' => 'pendente',
+        'status' => 'nao_cadastrado',
     ]);
 });
 

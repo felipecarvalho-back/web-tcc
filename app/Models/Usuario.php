@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PerfilUsuario;
-use Database\Factories\UserFactory;
+use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class Usuario extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @use HasFactory<UsuarioFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
     protected $table = 'usuarios';
@@ -41,6 +41,7 @@ class Usuario extends Authenticatable
     {
         return [
             'ativo' => 'boolean',
+            'perfil' => PerfilUsuario::class,
             'senha' => 'hashed',
         ];
     }
@@ -67,7 +68,7 @@ class Usuario extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->perfil === PerfilUsuario::Admin->value;
+        return $this->perfil === PerfilUsuario::Admin;
     }
 
     /**
@@ -75,7 +76,7 @@ class Usuario extends Authenticatable
      */
     public function canAccessPortaria(): bool
     {
-        return in_array($this->perfil, PerfilUsuario::portariaValues(), true);
+        return in_array($this->perfil?->value, PerfilUsuario::portariaValues(), true);
     }
 
     /**

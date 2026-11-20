@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin;
 
+use App\Actions\Admin\SalvarCondutorAction;
+use App\Enums\TipoCondutor;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Condutor;
 use App\Models\CondutorFuncionario;
@@ -220,50 +222,35 @@ class Condutores extends Component
         $this->editingId = $condutor->id;
         $this->name = $condutor->nome;
         $this->cpf = $condutor->cpf;
-        $this->category = $condutor->tipo;
+        $this->category = $condutor->tipo->value;
         $this->status = $condutor->ativo ? 'ativo' : 'inativo';
 
-        $rawValidade = $condutor->validade_acesso ?? 'Indeterminado';
-        $this->accessValidity = $rawValidade;
-
-        if (empty($rawValidade) || strcasecmp($rawValidade, 'Indeterminado') === 0) {
+        if ($condutor->validade_acesso === null) {
+            $this->accessValidity = 'Indeterminado';
             $this->validityType = 'indeterminado';
             $this->validityDate = '';
             $this->selectedPreset = 'indeterminado';
-        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawValidade)) {
-            $this->validityType = 'data';
-            $this->validityDate = $rawValidade;
-            $this->selectedPreset = 'personalizado';
-        } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $rawValidade)) {
-            $this->validityType = 'data';
-            $this->validityDate = Carbon::createFromFormat('d/m/Y', $rawValidade)->format('Y-m-d');
-            $this->selectedPreset = 'personalizado';
         } else {
+            $dataFormatada = $condutor->validade_acesso->format('Y-m-d');
+            $this->accessValidity = $dataFormatada;
             $this->validityType = 'data';
-            $preset = match (strtolower(trim($rawValidade))) {
-                'semestre atual' => 'semestre',
-                '1 ano' => '1_ano',
-                '90 dias' => '90_dias',
-                '30 dias' => '30_dias',
-                '7 dias' => '30_dias',
-                default => 'semestre',
-            };
-            $this->applyValidityPreset($preset);
+            $this->validityDate = $dataFormatada;
+            $this->selectedPreset = 'personalizado';
         }
 
         $especializacao = match ($condutor->tipo) {
-            'professor' => $condutor->professor,
-            'funcionario' => $condutor->funcionario,
-            'prestador' => $condutor->prestador,
+            TipoCondutor::Professor => $condutor->professor,
+            TipoCondutor::Funcionario => $condutor->funcionario,
+            TipoCondutor::Prestador => $condutor->prestador,
             default => null,
         };
 
         $this->code = Condutor::formatarCodigoAcesso($especializacao?->codigo_acesso ?? '');
 
         $this->department = match ($condutor->tipo) {
-            'professor' => $condutor->professor?->departamento ?? '',
-            'funcionario' => $condutor->funcionario?->setor ?? '',
-            'prestador' => $condutor->prestador?->empresa ?? '',
+            TipoCondutor::Professor => $condutor->professor?->departamento ?? '',
+            TipoCondutor::Funcionario => $condutor->funcionario?->setor ?? '',
+            TipoCondutor::Prestador => $condutor->prestador?->empresa ?? '',
             default => '',
         };
 
@@ -292,13 +279,13 @@ class Condutores extends Component
         $this->resetForm();
     }
 
-    public function save(): void
+    public function save(SalvarCondutorAction $salvarCondutor): void
     {
         $this->cpf = trim($this->cpf);
         $this->code = Condutor::formatarCodigoAcesso($this->code);
 
         foreach ($this->vehicles as $index => $vehicle) {
-            $placaBruta = trim((string) ($vehicle['plate'] ?? ''));
+            $placaBruta = trim($vehicle['plate']);
             $this->vehicles[$index]['plate'] = $placaBruta !== ''
                 ? RegistroAcesso::formatarPlaca($placaBruta)
                 : '';
@@ -323,7 +310,7 @@ class Condutores extends Component
             ],
             'category' => [
                 'required',
-                Rule::in(['professor', 'funcionario', 'prestador']),
+                Rule::in(TipoCondutor::institutionalValues()),
             ],
             'code' => [
                 'required',
@@ -389,108 +376,25 @@ class Condutores extends Component
             'vehicles.*.model.required' => 'Informe o modelo do veículo.',
         ]);
 
-        $veiculosValidos = collect($this->vehicles)
-            ->filter(fn (array $vehicle): bool => trim($vehicle['plate'] ?? '') !== '')
-            ->values();
-
-        $this->accessValidity = $this->validityType === 'data' && ! empty($this->validityDate)
+        $validadeNormalizada = $this->validityType === 'data' && ! empty($this->validityDate)
             ? $this->validityDate
-            : 'Indeterminado';
+            : null;
+
+        $this->accessValidity = $validadeNormalizada ?? 'Indeterminado';
 
         $wasEditing = $this->editingId !== null;
 
-        DB::transaction(function () use ($veiculosValidos): void {
-            $categoriaAnterior = null;
-
-            if ($this->editingId) {
-                $condutor = Condutor::with('veiculos')->findOrFail($this->editingId);
-                $categoriaAnterior = $condutor->tipo;
-                $condutor->update([
-                    'nome' => trim($this->name),
-                    'cpf' => trim($this->cpf),
-                    'tipo' => $this->category,
-                    'validade_acesso' => $this->accessValidity ?: 'Indeterminado',
-                    'ativo' => $this->status === 'ativo',
-                ]);
-            } else {
-                $condutor = Condutor::withTrashed()->updateOrCreate(
-                    ['cpf' => trim($this->cpf)],
-                    [
-                        'nome' => trim($this->name),
-                        'tipo' => $this->category,
-                        'validade_acesso' => $this->accessValidity ?: 'Indeterminado',
-                        'ativo' => $this->status === 'ativo',
-                        'deleted_at' => null,
-                    ]
-                );
-            }
-
-            if ($categoriaAnterior !== null && $categoriaAnterior !== $this->category) {
-                CondutorProfessor::where('condutor_id', $condutor->id)->delete();
-                CondutorFuncionario::where('condutor_id', $condutor->id)->delete();
-                CondutorPrestador::where('condutor_id', $condutor->id)->delete();
-            }
-
-            match ($this->category) {
-                'professor' => CondutorProfessor::updateOrCreate(
-                    ['condutor_id' => $condutor->id],
-                    [
-                        'codigo_acesso' => $this->code,
-                        'departamento' => $this->department ?: null,
-                    ]
-                ),
-                'funcionario' => CondutorFuncionario::updateOrCreate(
-                    ['condutor_id' => $condutor->id],
-                    [
-                        'codigo_acesso' => $this->code,
-                        'setor' => $this->department ?: null,
-                    ]
-                ),
-                'prestador' => CondutorPrestador::updateOrCreate(
-                    ['condutor_id' => $condutor->id],
-                    [
-                        'codigo_acesso' => $this->code,
-                        'empresa' => $this->department,
-                    ]
-                ),
-            };
-
-            $idsEnviados = [];
-
-            foreach ($veiculosValidos as $vehicle) {
-                $placaFormatada = RegistroAcesso::formatarPlaca($vehicle['plate']);
-                $corFormatada = trim((string) ($vehicle['color'] ?? '')) !== ''
-                    ? trim((string) $vehicle['color'])
-                    : 'Não informada';
-
-                $dadosVeiculo = [
-                    'condutor_id' => $condutor->id,
-                    'placa' => $placaFormatada,
-                    'modelo' => trim((string) ($vehicle['model'] ?? '')) ?: 'Veículo de Passeio',
-                    'cor' => $corFormatada,
-                    'ativo' => $condutor->ativo,
-                    'deleted_at' => null,
-                ];
-
-                if (! empty($vehicle['id'])) {
-                    $veiculo = Veiculo::where('condutor_id', $condutor->id)
-                        ->findOrFail($vehicle['id']);
-
-                    $veiculo->update($dadosVeiculo);
-                } else {
-                    $veiculo = Veiculo::withTrashed()->updateOrCreate(
-                        ['placa' => $placaFormatada],
-                        $dadosVeiculo
-                    );
-                }
-
-                $idsEnviados[] = $veiculo->id;
-            }
-
-            $condutor->veiculos()
-                ->whereNotIn('id', $idsEnviados)
-                ->delete();
-        });
+        $salvarCondutor->execute([
+            'editing_id' => $this->editingId,
+            'name' => $this->name,
+            'cpf' => $this->cpf,
+            'category' => $this->category,
+            'code' => $this->code,
+            'department' => $this->department,
+            'validade_acesso' => $validadeNormalizada,
+            'ativo' => $this->status === 'ativo',
+            'vehicles' => $this->vehicles,
+        ]);
 
         $mensagem = $wasEditing
             ? 'Condutor atualizado com sucesso!'
@@ -628,17 +532,10 @@ class Condutores extends Component
 
         return $paginator->through(function ($condutor): array {
             /** @var Condutor $condutor */
-            $especializacao = match ($condutor->tipo) {
-                'professor' => $condutor->professor,
-                'funcionario' => $condutor->funcionario,
-                'prestador' => $condutor->prestador,
-                default => null,
-            };
-
             $departamento = match ($condutor->tipo) {
-                'professor' => $condutor->professor?->departamento ?? 'Não informado',
-                'funcionario' => $condutor->funcionario?->setor ?? 'Não informado',
-                'prestador' => $condutor->prestador?->empresa ?? 'Não informada',
+                TipoCondutor::Professor => $condutor->professor?->departamento ?? 'Não informado',
+                TipoCondutor::Funcionario => $condutor->funcionario?->setor ?? 'Não informado',
+                TipoCondutor::Prestador => $condutor->prestador?->empresa ?? 'Não informada',
                 default => '',
             };
 
@@ -648,7 +545,7 @@ class Condutores extends Component
                 'id' => $condutor->id,
                 'name' => $condutor->nome,
                 'cpf' => $condutor->cpf,
-                'category' => $condutor->tipo,
+                'category' => $condutor->tipo->value,
                 'code' => $condutor->codigoAcesso() ?? '--',
                 'department' => $departamento,
                 'vehicles' => $condutor->veiculos->map(function ($vehicle): array {

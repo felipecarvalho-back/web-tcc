@@ -194,13 +194,13 @@
 
                             <!-- Perfil -->
                             <td class="py-3 px-4">
-                                @if ($user->perfil === 'admin')
+                                @if ($user->perfil === \App\Enums\PerfilUsuario::Admin)
                                     <span
                                         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-100 text-purple-900 font-bold text-[11px]">
                                         <span class="material-symbols-outlined text-[14px]">admin_panel_settings</span>
                                         <span>Administrador</span>
                                     </span>
-                                @elseif ($user->perfil === 'supervisor')
+                                @elseif ($user->perfil === \App\Enums\PerfilUsuario::Supervisor)
                                     <span
                                         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 font-bold text-[11px]">
                                         <span class="material-symbols-outlined text-[14px]">security</span>

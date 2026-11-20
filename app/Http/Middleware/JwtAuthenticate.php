@@ -21,7 +21,7 @@ class JwtAuthenticate
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Token de autenticação não fornecido no cabeçalho Authorization.',
@@ -30,22 +30,29 @@ class JwtAuthenticate
 
         $usuario = $this->jwtService->getUserFromToken($token);
 
-        if (!$usuario) {
+        if (! $usuario) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Token JWT inválido ou expirado.',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (!$usuario->ativo) {
+        if (! $usuario->ativo) {
             return new JsonResponse([
                 'status' => 'error',
                 'message' => 'Usuário inativo no sistema.',
             ], Response::HTTP_FORBIDDEN);
         }
 
+        if (! $usuario->canAccessPortaria() && ! $usuario->isAdmin()) {
+            return new JsonResponse([
+                'status' => 'error',
+                'message' => 'Perfil sem permissão para operar a API da portaria.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         // Define o usuário autenticado na requisição
-        $request->setUserResolver(fn() => $usuario);
+        $request->setUserResolver(fn () => $usuario);
 
         return $next($request);
     }

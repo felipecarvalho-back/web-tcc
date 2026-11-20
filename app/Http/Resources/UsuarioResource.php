@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\PerfilUsuario;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,7 +24,7 @@ class UsuarioResource extends JsonResource
             'nome' => $this->nome,
             'email' => $this->email,
             'codigo_operador' => $this->codigo_operador,
-            'perfil' => $this->perfil,
+            'perfil' => $this->perfil instanceof PerfilUsuario ? $this->perfil->value : $this->perfil,
             'ativo' => (bool) $this->ativo,
         ];
     }

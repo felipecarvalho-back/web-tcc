@@ -116,7 +116,7 @@ it('permite aplicar opcoes pre-configuradas e determinar data customizada de val
         ->assertHasNoErrors();
 
     $condutor = Condutor::where('cpf', '529.982.247-25')->firstOrFail();
-    expect($condutor->validade_acesso)->toBe('2027-12-31')
+    expect($condutor->validade_acesso?->format('Y-m-d'))->toBe('2027-12-31')
         ->and($condutor->estaComAcessoExpirado())->toBeFalse()
         ->and($condutor->statusValidade()['status'])->toBe('valido');
 
@@ -131,7 +131,7 @@ it('permite aplicar opcoes pre-configuradas e determinar data customizada de val
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($condutor->fresh()->validade_acesso)->toBe('Indeterminado')
+    expect($condutor->fresh()->validade_acesso)->toBeNull()
         ->and($condutor->fresh()->estaComAcessoExpirado())->toBeFalse()
         ->and($condutor->fresh()->statusValidade()['status'])->toBe('permanente');
 });

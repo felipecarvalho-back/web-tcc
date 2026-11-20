@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusAcesso;
+use App\Enums\TipoCondutor;
 use App\Enums\TipoOcupante;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -197,13 +198,13 @@ class RegistroAcesso extends Model
     public function descricaoVinculo(): string
     {
         $condutor = $this->condutor;
-        $tipo = $condutor?->tipo ?? 'visitante';
+        $tipo = $condutor?->tipo?->value ?? TipoCondutor::Visitante->value;
 
         return match ($tipo) {
-            'professor' => 'Docente • '.($condutor?->professor?->departamento ?: 'Curso FATEC'),
-            'funcionario' => 'Servidor • '.($condutor?->funcionario?->setor ?: 'Administração'),
-            'prestador' => 'Prestador • '.($condutor?->prestador?->empresa ?: 'Serviço Terceirizado'),
-            'visitante' => 'Visitante • '.($condutor?->visitante?->motivo_visita ?: ($this->justificativa ?: 'Acesso Pontual')),
+            TipoCondutor::Professor->value => 'Docente • '.($condutor?->professor?->departamento ?: 'Curso FATEC'),
+            TipoCondutor::Funcionario->value => 'Servidor • '.($condutor?->funcionario?->setor ?: 'Administração'),
+            TipoCondutor::Prestador->value => 'Prestador • '.($condutor?->prestador?->empresa ?: 'Serviço Terceirizado'),
+            TipoCondutor::Visitante->value => 'Visitante • '.($condutor?->visitante?->motivo_visita ?: ($this->justificativa ?: 'Acesso Pontual')),
             default => 'Não Cadastrado',
         };
     }
@@ -223,6 +224,7 @@ class RegistroAcesso extends Model
         $temSaida = $this->data_hora_saida !== null;
         $temPlacaCorrigida = ! empty($this->placa_corrigida);
         $semPlaca = ! $this->temPlacaIdentificada();
+        $tipoCondutor = $this->condutor?->tipo?->value ?? TipoCondutor::Visitante->value;
 
         $detalhes = array_filter([
             $this->cancela,
@@ -235,7 +237,7 @@ class RegistroAcesso extends Model
             'plate' => $placaExibida,
             'raw_ocr' => $this->placa_registro,
             'driver_name' => $this->nomeCondutorExibicao(),
-            'category' => $this->condutor?->tipo ?? 'visitante',
+            'category' => $tipoCondutor,
             'category_label' => implode(' • ', $detalhes),
             'registered_at' => $this->data_hora_entrada?->format('H:i:s') ?? '--:--:--',
             'time_ago' => $this->data_hora_entrada?->locale('pt_BR')->diffForHumans() ?? 'Agora mesmo',
@@ -243,7 +245,7 @@ class RegistroAcesso extends Model
             'status_label' => $statusEnum->label($temSaida, $temPlacaCorrigida, $semPlaca),
             'image_url' => $this->foto_entrada_path ?: 'https://placehold.co/300x200?text=Sem+Imagem',
             'is_registered' => (bool) $this->veiculo_id,
-            'is_visitor' => $this->condutor?->tipo === 'visitante',
+            'is_visitor' => $tipoCondutor === TipoCondutor::Visitante->value,
             'driver_validity' => $this->condutor?->formatarValidadeParaExibicao() ?? 'Permanente',
             'is_driver_expired' => $this->condutor?->estaComAcessoExpirado() ?? false,
         ];

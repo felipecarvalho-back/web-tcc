@@ -3,11 +3,14 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\StatusAcesso;
+use App\Enums\TipoCondutor;
+use App\Enums\TipoOcupante;
 use App\Models\Condutor;
 use App\Models\RegistroAcesso;
 use App\Models\Usuario;
 use App\Models\Veiculo;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -78,6 +81,7 @@ class Dashboard extends Component
         $activeDrivers = Condutor::query()->where('ativo', true)->count();
 
         $passagensPeriodo = RegistroAcesso::query()
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
             ->filtrarData($this->periodFilter)
             ->selectRaw('
                 COUNT(*) as entradas,
@@ -93,10 +97,11 @@ class Dashboard extends Component
         $identifiedPlatesCount = (int) ($passagensPeriodo->identificadas ?? 0);
 
         $totaisGerais = RegistroAcesso::query()
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
             ->selectRaw('
                 COUNT(*) as total_historico,
-                COALESCE(SUM(CASE WHEN data_hora_saida IS NULL THEN 1 ELSE 0 END), 0) as em_patio
-            ')
+                COALESCE(SUM(CASE WHEN data_hora_saida IS NULL AND status IN (?, ?, ?) THEN 1 ELSE 0 END), 0) as em_patio
+            ', StatusAcesso::authorizedValues())
             ->first();
 
         $inCampusCount = (int) ($totaisGerais->em_patio ?? 0);
@@ -148,24 +153,45 @@ class Dashboard extends Component
             ];
         }
 
-        $registros = RegistroAcesso::query()
+        $driver = DB::connection()->getDriverName();
+        $hourInExpr = match ($driver) {
+            'pgsql' => 'EXTRACT(HOUR FROM data_hora_entrada)::int',
+            'sqlite' => "CAST(strftime('%H', data_hora_entrada) AS INTEGER)",
+            default => 'HOUR(data_hora_entrada)',
+        };
+        $hourOutExpr = match ($driver) {
+            'pgsql' => 'EXTRACT(HOUR FROM data_hora_saida)::int',
+            'sqlite' => "CAST(strftime('%H', data_hora_saida) AS INTEGER)",
+            default => 'HOUR(data_hora_saida)',
+        };
+
+        $entradasPorHora = RegistroAcesso::query()
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
             ->filtrarData($this->periodFilter)
-            ->get(['data_hora_entrada', 'data_hora_saida']);
+            ->whereNotNull('data_hora_entrada')
+            ->selectRaw("{$hourInExpr} as hora, COUNT(*) as total")
+            ->groupByRaw($hourInExpr)
+            ->pluck('total', 'hora');
 
-        foreach ($registros as $reg) {
-            /** @var RegistroAcesso $reg */
-            if ($reg->data_hora_entrada !== null) {
-                $hIn = $reg->data_hora_entrada->format('H');
-                if (isset($slots[$hIn])) {
-                    $slots[$hIn]['in']++;
-                }
+        foreach ($entradasPorHora as $hora => $total) {
+            $key = str_pad((string) ((int) $hora), 2, '0', STR_PAD_LEFT);
+            if (isset($slots[$key])) {
+                $slots[$key]['in'] = (int) $total;
             }
+        }
 
-            if ($reg->data_hora_saida !== null) {
-                $hOut = $reg->data_hora_saida->format('H');
-                if (isset($slots[$hOut])) {
-                    $slots[$hOut]['out']++;
-                }
+        $saidasPorHora = RegistroAcesso::query()
+            ->where('tipo_ocupante', TipoOcupante::Condutor)
+            ->filtrarData($this->periodFilter)
+            ->whereNotNull('data_hora_saida')
+            ->selectRaw("{$hourOutExpr} as hora, COUNT(*) as total")
+            ->groupByRaw($hourOutExpr)
+            ->pluck('total', 'hora');
+
+        foreach ($saidasPorHora as $hora => $total) {
+            $key = str_pad((string) ((int) $hora), 2, '0', STR_PAD_LEFT);
+            if (isset($slots[$key])) {
+                $slots[$key]['out'] = (int) $total;
             }
         }
 
@@ -225,7 +251,7 @@ class Dashboard extends Component
             ->map(function ($reg): array {
                 /** @var RegistroAcesso $reg */
                 $condutor = $reg->condutor;
-                $tipo = $condutor?->tipo ?? 'visitante';
+                $tipo = $condutor?->tipo?->value ?? TipoCondutor::Visitante->value;
 
                 $temSaida = $reg->data_hora_saida !== null || $reg->status === StatusAcesso::Finalizado;
                 $temPlacaCorrigida = ! empty($reg->placa_corrigida);

@@ -25,7 +25,7 @@ beforeEach(function () {
         'nome' => 'Prof. Dr. Marcos Souza',
         'cpf' => '529.982.247-25',
         'tipo' => 'professor',
-        'validade_acesso' => 'Indeterminado',
+        'validade_acesso' => null,
         'ativo' => true,
     ]);
     CondutorProfessor::create([
@@ -46,7 +46,7 @@ beforeEach(function () {
         'nome' => 'Fernanda Guimarães',
         'cpf' => '111.444.777-35',
         'tipo' => 'funcionario',
-        'validade_acesso' => 'Indeterminado',
+        'validade_acesso' => null,
         'ativo' => true,
     ]);
     CondutorFuncionario::create([
@@ -60,7 +60,7 @@ beforeEach(function () {
         'nome' => 'Carlos Silva',
         'cpf' => '123.456.789-09',
         'tipo' => 'prestador',
-        'validade_acesso' => 'Semestre Atual',
+        'validade_acesso' => Carbon::today()->addMonths(3)->format('Y-m-d'),
         'ativo' => true,
     ]);
     CondutorPrestador::create([

@@ -22,16 +22,29 @@ class PlacaOcrService
 
         try {
             $filename = $nomeArquivo ?? basename($caminhoArquivo);
+            $stream = fopen($caminhoArquivo, 'r');
+            if ($stream === false) {
+                return null;
+            }
 
-            $request = Http::timeout(120);
+            $connectTimeout = max(5, (int) config('services.python_api.connect_timeout', 30));
+            $timeout = max($connectTimeout, (int) config('services.python_api.timeout', 120));
+
+            $request = Http::connectTimeout($connectTimeout)->timeout($timeout);
 
             if (! empty($token)) {
                 $request = $request->withToken($token);
             }
 
-            $response = $request
-                ->attach('file', file_get_contents($caminhoArquivo), $filename)
-                ->post("{$baseUrl}/detectar-placa");
+            try {
+                $response = $request
+                    ->attach('file', $stream, $filename)
+                    ->post("{$baseUrl}/detectar-placa");
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
 
             if ($response->successful()) {
                 $dados = $response->json();

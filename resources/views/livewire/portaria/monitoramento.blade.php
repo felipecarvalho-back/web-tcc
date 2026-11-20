@@ -1,4 +1,4 @@
-<div wire:poll.5s.visible class="flex flex-col gap-6">
+<div @if (! $showVerificationModal && ! $showDriverConfirmationModal && ! $showBlockModal) wire:poll.5s.visible @endif class="flex flex-col gap-6">
     <!-- TOAST NOTIFICATION -->
     <x-toast :message="$toastMessage" :type="$toastType" />
 

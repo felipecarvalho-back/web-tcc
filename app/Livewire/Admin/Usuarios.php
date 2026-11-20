@@ -8,6 +8,7 @@ use App\Models\Usuario;
 use App\Rules\CpfValido;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -100,7 +101,7 @@ class Usuarios extends Component
             $this->nome = $user->nome;
             $this->cpf = $user->cpf;
             $this->email = $user->email;
-            $this->perfil = $user->perfil;
+            $this->perfil = $user->perfil instanceof PerfilUsuario ? $user->perfil->value : (string) $user->perfil;
             $this->codigo_operador = $user->codigo_operador;
             $this->ativo = (bool) $user->ativo;
             $this->showFormModal = true;
@@ -156,16 +157,34 @@ class Usuarios extends Component
 
         $this->validate($rules, $messages);
 
+        if ($this->editingId !== null && Auth::id() === $this->editingId) {
+            if (! $this->ativo) {
+                $this->addError('ativo', 'Você não pode desativar seu próprio usuário logado.');
+
+                return;
+            }
+
+            if ($this->perfil !== PerfilUsuario::Admin->value) {
+                $this->addError('perfil', 'Você não pode remover seu próprio perfil de administrador.');
+
+                return;
+            }
+        }
+
         if ($this->editingId === null) {
-            $user = Usuario::create([
-                'nome' => $this->nome,
-                'cpf' => $this->cpf,
-                'email' => $this->email,
-                'perfil' => $this->perfil,
-                'codigo_operador' => strtoupper($this->codigo_operador),
-                'senha' => $this->senha,
-                'ativo' => $this->ativo,
-            ]);
+            $user = DB::transaction(function (): Usuario {
+                $codigo = Usuario::gerarProximoCodigo($this->perfil);
+
+                return Usuario::create([
+                    'nome' => $this->nome,
+                    'cpf' => $this->cpf,
+                    'email' => $this->email,
+                    'perfil' => $this->perfil,
+                    'codigo_operador' => strtoupper($codigo),
+                    'senha' => $this->senha,
+                    'ativo' => $this->ativo,
+                ]);
+            });
 
             $this->triggerToast("Novo usuário {$user->nome} ({$user->codigo_operador}) cadastrado com sucesso!", 'success');
         } else {
@@ -191,6 +210,12 @@ class Usuarios extends Component
 
     public function toggleStatus(int $id): void
     {
+        if (Auth::id() === $id) {
+            $this->triggerToast('Você não pode desativar seu próprio usuário logado!', 'error');
+
+            return;
+        }
+
         $user = Usuario::findOrFail($id);
         $novoStatus = ! $user->ativo;
         $user->update(['ativo' => $novoStatus]);

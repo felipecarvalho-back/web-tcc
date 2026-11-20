@@ -11,6 +11,10 @@ Route::post('/login', [AuthController::class, 'login'])
 
 // Rotas protegidas por Token JWT
 Route::middleware('jwt.auth')->group(function () {
-    Route::post('/enviar', [ImagemController::class, 'enviar'])->name('api.enviar');
-    Route::get('/historico', [ImagemController::class, 'historico'])->name('api.historico');
+    Route::post('/enviar', [ImagemController::class, 'enviar'])
+        ->middleware('throttle:30,1')
+        ->name('api.enviar');
+    Route::get('/historico', [ImagemController::class, 'historico'])
+        ->middleware('throttle:60,1')
+        ->name('api.historico');
 });
