@@ -50,15 +50,29 @@ class CloudinaryService
             $signature = sha1($signatureString);
 
             $filename = $nomeArquivo ?? basename($caminhoArquivo);
+            $stream = fopen($caminhoArquivo, 'r');
+            if ($stream === false) {
+                return null;
+            }
 
-            $response = Http::timeout(120)
-                ->attach('file', file_get_contents($caminhoArquivo), $filename)
-                ->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", [
-                    'api_key' => $apiKey,
-                    'timestamp' => $timestamp,
-                    'folder' => $pasta,
-                    'signature' => $signature,
-                ]);
+            $connectTimeout = max(5, (int) config('services.cloudinary.connect_timeout', 15));
+            $timeout = max($connectTimeout, (int) config('services.cloudinary.timeout', 60));
+
+            try {
+                $response = Http::connectTimeout($connectTimeout)
+                    ->timeout($timeout)
+                    ->attach('file', $stream, $filename)
+                    ->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", [
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'folder' => $pasta,
+                        'signature' => $signature,
+                    ]);
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
 
             if ($response->successful()) {
                 return $response->json('secure_url');

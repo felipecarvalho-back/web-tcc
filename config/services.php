@@ -39,11 +39,15 @@ return [
         'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
         'api_key' => env('CLOUDINARY_API_KEY'),
         'api_secret' => env('CLOUDINARY_API_SECRET'),
+        'connect_timeout' => (int) env('CLOUDINARY_CONNECT_TIMEOUT', 15),
+        'timeout' => (int) env('CLOUDINARY_TIMEOUT', 60),
     ],
 
     'python_api' => [
         'url' => env('API_URL_PYTHON', 'http://127.0.0.1:5000'),
         'token' => env('API_TOKEN_PYTHON'),
+        'connect_timeout' => (int) env('API_PYTHON_CONNECT_TIMEOUT', 30),
+        'timeout' => (int) env('API_PYTHON_TIMEOUT', 120),
     ],
 
 ];

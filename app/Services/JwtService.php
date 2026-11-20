@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\PerfilUsuario;
 use App\Models\Usuario;
 use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Facades\Config;
+use RuntimeException;
 
 class JwtService
 {
@@ -33,7 +35,7 @@ class JwtService
                 'nome' => $usuario->nome,
                 'email' => $usuario->email,
                 'codigo_operador' => $usuario->codigo_operador,
-                'perfil' => $usuario->perfil,
+                'perfil' => $usuario->perfil instanceof PerfilUsuario ? $usuario->perfil->value : $usuario->perfil,
             ],
         ];
 
@@ -89,7 +91,11 @@ class JwtService
         $secret = Config::get('jwt.secret');
 
         if (empty($secret)) {
-            $secret = Config::get('app.key', 'base64:default-insecure-secret-key-32chars');
+            $secret = Config::get('app.key');
+        }
+
+        if (! is_string($secret) || trim($secret) === '') {
+            throw new RuntimeException('Chave secreta JWT não configurada. Defina JWT_SECRET ou APP_KEY.');
         }
 
         if (str_starts_with($secret, 'base64:')) {

@@ -88,7 +88,13 @@ class ImagemController extends Controller
 
     public function enviar(Request $request): JsonResponse
     {
-        set_time_limit(120);
+        $maxExecutionTime = max(
+            120,
+            (int) config('services.python_api.timeout', 120)
+                + (int) config('services.cloudinary.timeout', 60)
+                + 15
+        );
+        set_time_limit($maxExecutionTime);
 
         // 1. Validação restrita apenas a PNG e JPG/JPEG (até 10MB para fotos de smartphones)
         $request->validate([
@@ -131,7 +137,7 @@ class ImagemController extends Controller
         }
 
         if (! $urlFinal) {
-            $caminho = $arquivo->storeAs('perfis', $nomeArquivo, 'public');
+            $caminho = $arquivo->storeAs('placas', $nomeArquivo, 'public');
             $urlFinal = Storage::url($caminho);
             $armazenamento = 'local';
         }
