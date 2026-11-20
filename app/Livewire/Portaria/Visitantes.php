@@ -2,19 +2,16 @@
 
 namespace App\Livewire\Portaria;
 
-use App\Enums\StatusAcesso;
-use App\Enums\TipoOcupante;
+use App\Actions\Portaria\RegistrarVisitanteAction;
+use App\Enums\TipoCondutor;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Condutor;
-use App\Models\CondutorVisitante;
 use App\Models\RegistroAcesso;
-use App\Models\Veiculo;
 use App\Rules\CpfValido;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -180,110 +177,39 @@ class Visitantes extends Component
     }
 
     /**
-     * Persiste ou atualiza o condutor visitante, seus dados de visita e o veículo utilizado.
-     *
-     * @return array{condutor: Condutor, veiculo: Veiculo}
-     */
-    private function persistVisitorAndVehicle(string $nomeVisitante, string $modeloVeiculo, string $corVeiculo): array
-    {
-        if ($this->isEditing && $this->selectedCondutorId) {
-            $condutor = Condutor::findOrFail($this->selectedCondutorId);
-            $condutor->update([
-                'nome' => $nomeVisitante,
-                'cpf' => $this->cpf,
-            ]);
-        } else {
-            $condutor = Condutor::withTrashed()->updateOrCreate(
-                ['cpf' => $this->cpf],
-                [
-                    'nome' => $nomeVisitante,
-                    'tipo' => 'visitante',
-                    'ativo' => true,
-                    'deleted_at' => null,
-                ]
-            );
-        }
-
-        CondutorVisitante::updateOrCreate(
-            ['condutor_id' => $condutor->id],
-            [
-                'motivo_visita' => $this->visitReason,
-                'setor_destino' => $this->department,
-                'permanencia_estimada' => $this->estimatedStay,
-            ]
-        );
-
-        $veiculo = Veiculo::withTrashed()->updateOrCreate(
-            ['placa' => $this->plate],
-            [
-                'condutor_id' => $condutor->id,
-                'modelo' => $modeloVeiculo,
-                'cor' => $corVeiculo,
-                'ativo' => true,
-                'deleted_at' => null,
-            ]
-        );
-
-        return [
-            'condutor' => $condutor,
-            'veiculo' => $veiculo,
-        ];
-    }
-
-    /**
      * Salva o cadastro/edição do visitante e libera a cancela registrando a passagem.
      */
-    public function registerAndReleaseGate(): void
+    public function registerAndReleaseGate(RegistrarVisitanteAction $registrarVisitante): void
     {
         $this->cpf = trim($this->cpf);
         $this->plate = trim($this->plate) !== '' ? RegistroAcesso::formatarPlaca($this->plate) : '';
         $this->validate();
 
-        $nomeVisitante = trim($this->visitorName) !== '' ? trim($this->visitorName) : 'Visitante Identificado';
-        $modeloVeiculo = trim($this->vehicleModel) !== '' ? trim($this->vehicleModel) : 'Veículo de Passeio';
-        $corVeiculo = trim($this->vehicleColor) !== '' ? trim($this->vehicleColor) : 'Não informada';
+        $wasEditing = $this->isEditing && $this->selectedId !== null;
 
-        if ($this->isEditing && $this->selectedId) {
-            DB::transaction(function () use ($nomeVisitante, $modeloVeiculo, $corVeiculo): void {
-                $registro = RegistroAcesso::findOrFail($this->selectedId);
-                $this->selectedCondutorId = $this->selectedCondutorId ?? $registro->condutor_id;
-
-                $dados = $this->persistVisitorAndVehicle($nomeVisitante, $modeloVeiculo, $corVeiculo);
-
-                $registro->update([
-                    'condutor_id' => $dados['condutor']->id,
-                    'veiculo_id' => $dados['veiculo']->id,
-                    'placa_registro' => $this->plate,
-                    'justificativa' => "Visita ({$this->department}): {$this->visitReason}",
-                ]);
-            });
-
-            $this->closeFormModal();
-            unset($this->filteredVisitors);
-            $this->triggerToast('Registro de visita atualizado com sucesso!', 'success');
-
-            return;
-        }
-
-        DB::transaction(function () use ($nomeVisitante, $modeloVeiculo, $corVeiculo): void {
-            $dados = $this->persistVisitorAndVehicle($nomeVisitante, $modeloVeiculo, $corVeiculo);
-
-            RegistroAcesso::create([
-                'veiculo_id' => $dados['veiculo']->id,
-                'condutor_id' => $dados['condutor']->id,
-                'tipo_ocupante' => TipoOcupante::Condutor,
-                'placa_registro' => $this->plate,
-                'cancela' => 'Cancela 01 (Principal)',
-                'data_hora_entrada' => Carbon::now(),
-                'operador_id' => Auth::id(),
-                'status' => StatusAcesso::EmPatio,
-                'justificativa' => "Visita ({$this->department}): {$this->visitReason}",
-            ]);
-        });
+        $registrarVisitante->execute([
+            'is_editing' => $wasEditing,
+            'selected_id' => $this->selectedId,
+            'selected_condutor_id' => $this->selectedCondutorId,
+            'cpf' => $this->cpf,
+            'plate' => $this->plate,
+            'visit_reason' => $this->visitReason,
+            'visitor_name' => $this->visitorName,
+            'vehicle_model' => $this->vehicleModel,
+            'vehicle_color' => $this->vehicleColor,
+            'department' => $this->department,
+            'estimated_stay' => $this->estimatedStay,
+            'operador_id' => Auth::id(),
+        ]);
 
         $this->closeFormModal();
         unset($this->filteredVisitors);
-        $this->triggerToast('Entrada registrada! Cancela 01 liberada para o visitante.', 'success');
+        $this->triggerToast(
+            $wasEditing
+                ? 'Registro de visita atualizado com sucesso!'
+                : 'Entrada registrada! Cancela 01 liberada para o visitante.',
+            'success'
+        );
     }
 
     /**
@@ -376,7 +302,7 @@ class Visitantes extends Component
                 'condutor.visitante:condutor_id,motivo_visita,setor_destino,permanencia_estimada',
                 'veiculo:id,condutor_id,placa',
             ])
-            ->whereHas('condutor', fn (Builder $q) => $q->where('tipo', 'visitante'));
+            ->whereHas('condutor', fn (Builder $q) => $q->where('tipo', TipoCondutor::Visitante->value));
 
         if ($this->dateFilter !== 'todos') {
             $query->filtrarData($this->dateFilter);
