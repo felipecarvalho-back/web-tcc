@@ -115,3 +115,23 @@ test('o componente exporta os registros filtrados em csv compativel com excel', 
         ->call('exportCsv')
         ->assertFileDownloaded();
 });
+
+test('a paginacao dos relatorios exibe labels traduzidos em vez das chaves pagination.previous e pagination.next', function () {
+    for ($i = 1; $i <= 12; $i++) {
+        RegistroAcesso::query()->create([
+            'placa_registro' => 'PAG-'.str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+            'cancela' => 'Cancela 01 (Principal)',
+            'data_hora_entrada' => Carbon::now()->subMinutes($i),
+            'operador_id' => $this->admin->id,
+            'status' => StatusAcesso::Autorizado,
+            'tipo_ocupante' => TipoOcupante::Condutor,
+        ]);
+    }
+
+    Livewire::actingAs($this->admin)
+        ->test(Relatorios::class)
+        ->assertSee('Anterior')
+        ->assertSee('Próxima')
+        ->assertDontSee('pagination.previous')
+        ->assertDontSee('pagination.next');
+});
